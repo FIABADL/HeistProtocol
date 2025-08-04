@@ -29,6 +29,7 @@
   </style>
 </head>
 <body>
+  <audio id="bg-music" src="Radional.mp3" loop preload="auto"></audio>  <!-- background music -->
   <canvas id="matrix"></canvas>
   <div id="app">
     <div id="status-bar" class="hidden"><div id="timer">05:00</div></div>
@@ -128,6 +129,8 @@
       if (totalTime === 0) gameOver();
     }
     function gameOver() {
+      // stop background music
+      const bg = document.getElementById('bg-music'); bg.pause(); bg.currentTime = 0;
       clearInterval(timerInt);
       ['start-screen','wire-module','memory-module','letter-module','button-module','password-module','status-bar']
         .forEach(id => document.getElementById(id).classList.add('hidden'));
@@ -199,7 +202,10 @@
 
     // Navigation
     document.getElementById('instructions-btn').addEventListener('click',()=>window.open('https://youtube.com/shorts/9tSo2e8ZHdI','_blank'));
-    document.getElementById('start-btn').addEventListener('click',()=>{ document.getElementById('start-screen').classList.add('hidden'); document.getElementById('wire-module').classList.remove('hidden'); initWires(); startTimer(); });
+    document.getElementById('start-btn').addEventListener('click',()=>{
+      // play background music
+      const bg = document.getElementById('bg-music');
+      bg.play().catch(e=>console.warn('Audio play failed:',e)); document.getElementById('start-screen').classList.add('hidden'); document.getElementById('wire-module').classList.remove('hidden'); initWires(); startTimer(); });
     document.getElementById('next-btn').addEventListener('click',()=>{ document.getElementById('wire-module').classList.add('hidden'); document.getElementById('memory-module').classList.remove('hidden'); initMemory(); });
     document.getElementById('memory-next-btn').addEventListener('click',()=>{ document.getElementById('memory-module').classList.add('hidden'); document.getElementById('letter-module').classList.remove('hidden'); initLetter(); });
     document.getElementById('letter-next-btn').addEventListener('click',()=>{ document.getElementById('letter-module').classList.add('hidden'); document.getElementById('button-module').classList.remove('hidden'); initButton(); });
