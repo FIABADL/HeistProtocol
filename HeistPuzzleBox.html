@@ -201,7 +201,7 @@
     document.getElementById('pass-submit').addEventListener('click',()=>{ const word=passLetters.join(''); if(word===correctWord){ clearInterval(timerInt); document.getElementById('pass-feedback').textContent='All security systems deactivated.'; setTimeout(()=>{ document.getElementById('pass-feedback').textContent=`${correctWord} is the code for the safe.`; },1000); } else { applyPenalty(); document.getElementById('pass-feedback').textContent=`❌ Try again. -${strikeCount*5}s`; } });
 
     // Navigation
-    document.getElementById('instructions-btn').addEventListener('click',()=>window.open('https://youtube.com/shorts/9tSo2e8ZHdI','_blank'));
+    document.getElementById('instructions-btn').addEventListener('click',()=>window.open('https://youtube.com/shorts/-1dn5n1JsX4','_blank'));
     document.getElementById('start-btn').addEventListener('click',()=>{
       // play background music
       const bg = document.getElementById('bg-music');
