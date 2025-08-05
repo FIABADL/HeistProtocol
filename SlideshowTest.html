@@ -9,23 +9,28 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 100%; height: 100%; overflow: hidden; }
 
-    /* container holds both layers */
+    /* container holds embed and video */
     .container {
       position: relative;
       width: 100%;
       height: 100vh;
       overflow: hidden;
+      background: transparent;
     }
 
-    /* background slideshow */
-    #slideshow-bg {
+    /* Buzzshot embed as full‐screen background */
+    .embed-bg {
       position: absolute;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      background-size: cover;
-      background-position: center;
-      transition: background-image 1s ease-in-out;
       z-index: 1;
+      overflow: hidden;
+    }
+    .embed-bg iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: transparent;
     }
 
     /* overlay video with transparent areas */
@@ -42,10 +47,17 @@
 </head>
 <body>
   <div class="container">
-    <!-- cycling team-photo background -->
-    <div id="slideshow-bg"></div>
+    <!-- 1) Buzzshot embed behind -->
+    <div class="embed-bg">
+      <iframe
+        src="https://buzzshot.com/widgets/embed/953575865701405abe758c56427ff634/"
+        frameborder="0"
+        scrolling="no"
+        allowtransparency="true">
+      </iframe>
+    </div>
 
-    <!-- looping, autoplaying transparent MP4 on top -->
+    <!-- 2) Transparent MP4 overlay -->
     <video
       id="overlay-video"
       src="FOX IN A BOX ADELAIDE.mp4"
@@ -56,36 +68,5 @@
       preload="auto">
     </video>
   </div>
-
-  <script>
-    // list all your team-photo files here
-    const bgImages = [
-      'TV Test/photo1.jpg',
-      'TV Test/photo2.jpg',
-      'TV Test/photo3.jpg'
-      // …add any additional filenames…
-    ];
-    const slideshowBg = document.getElementById('slideshow-bg');
-    const cycleMs = 10000; // 10s per photo
-    let lastImg = null;
-
-    function randomChoice(arr) {
-      return arr[Math.floor(Math.random() * arr.length)];
-    }
-
-    function nextBackground() {
-      if (!bgImages.length) return;
-      let img;
-      do {
-        img = randomChoice(bgImages);
-      } while (bgImages.length > 1 && img === lastImg);
-      lastImg = img;
-      slideshowBg.style.backgroundImage = `url(${img})`;
-    }
-
-    // initialize and loop
-    nextBackground();
-    setInterval(nextBackground, cycleMs);
-  </script>
 </body>
 </html>
