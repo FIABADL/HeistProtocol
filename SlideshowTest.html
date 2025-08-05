@@ -17,7 +17,7 @@
       overflow: hidden;
     }
 
-    /* photo slideshow layer */
+    /* background slideshow */
     #slideshow-bg {
       position: absolute;
       top: 0; left: 0;
@@ -25,73 +25,65 @@
       background-size: cover;
       background-position: center;
       transition: background-image 1s ease-in-out;
+      z-index: 1;
     }
 
-    /* Canva embed goes on top */
-    .canva-wrapper {
+    /* overlay video with transparent areas */
+    #overlay-video {
       position: absolute;
       top: 0; left: 0;
       width: 100%; height: 100%;
+      object-fit: contain;
+      background: transparent;
       z-index: 2;
-      overflow: auto;
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- photo slideshow background -->
+    <!-- cycling team-photo background -->
     <div id="slideshow-bg"></div>
 
-    <!-- Canva embed on top -->
-    <div class="canva-wrapper">
-      <div style="position: relative; width: 100%; height: 0; padding-top: 177.7778%; box-shadow: 0 2px 8px rgba(63,69,81,0.16); margin: 1.6em 0 0.9em; overflow: hidden; border-radius: 8px; will-change: transform;">
-        <iframe
-          loading="lazy"
-          style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; border: none; background: transparent;"
-          src="https://www.canva.com/design/DAGvLIhXWoI/PASChCJbWzzevjt76fb6FA/watch?embed"
-          allowfullscreen
-          allow="fullscreen">
-        </iframe>
-      </div>
-      <center>
-        <a
-          href="https://www.canva.com/design/DAGvLIhXWoI/PASChCJbWzzevjt76fb6FA/watch?utm_content=DAGvLIhXWoI&amp;utm_campaign=designshare&amp;utm_medium=embeds&amp;utm_source=link"
-          target="_blank"
-          rel="noopener"
-          style="color: gray; text-decoration: none;">
-          FOX IN A BOX ADELAIDE
-        </a> by Cohen McRae
-      </center>
-    </div>
+    <!-- looping, autoplaying transparent MP4 on top -->
+    <video
+      id="overlay-video"
+      src="FOX IN A BOX ADELAIDE.mp4"
+      autoplay
+      loop
+      muted
+      playsinline
+      preload="auto">
+    </video>
   </div>
 
   <script>
-    // list your team-photo files here
+    // list all your team-photo files here
     const bgImages = [
       'TV Test/photo1.jpg',
       'TV Test/photo2.jpg',
       'TV Test/photo3.jpg'
-      // …add the rest of your filenames…
+      // …add any additional filenames…
     ];
     const slideshowBg = document.getElementById('slideshow-bg');
     const cycleMs = 10000; // 10s per photo
-    let lastImg = '';
+    let lastImg = null;
 
     function randomChoice(arr) {
       return arr[Math.floor(Math.random() * arr.length)];
     }
 
     function nextBackground() {
-      if (bgImages.length === 0) return;
+      if (!bgImages.length) return;
       let img;
       do {
         img = randomChoice(bgImages);
-      } while (arr.length > 1 && img === lastImg);
+      } while (bgImages.length > 1 && img === lastImg);
       lastImg = img;
       slideshowBg.style.backgroundImage = `url(${img})`;
     }
 
-    // start and repeat
+    // initialize and loop
     nextBackground();
     setInterval(nextBackground, cycleMs);
   </script>
