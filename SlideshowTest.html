@@ -9,16 +9,20 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 100%; height: 100%; overflow: hidden; }
 
-    /* fill the viewport */
-    .container {
+    /* wrapper keeps a 16:9 ratio and fills the screen */
+    .wrapper {
       position: relative;
-      width: 100%;
+      width: 100vw;
       height: 100vh;
+      max-width: 100%;
+      max-height: 100%;
+      aspect-ratio: 16 / 9;
+      margin: 0 auto;
       overflow: hidden;
       background: transparent;
     }
 
-    /* 4:3 buzzshot embed, centered and scaled */
+    /* background layer (buzzshot) fills the wrapper */
     .embed-bg {
       position: absolute;
       inset: 0;
@@ -26,26 +30,25 @@
       justify-content: center;
       align-items: center;
       z-index: 1;
+    }
+
+    /* the 4:3 embed, centered then scaled 2.35× and shifted down 2px */
+    .buzzshot-container {
+      position: absolute;
+      top: 50%; left: 50%;
+      height: 100%;               /* full wrapper height */
+      aspect-ratio: 4 / 3;
+      transform: translate(-50%, -50%) scale(2.35) translateY(2px);
+      transform-origin: center center;
       overflow: hidden;
     }
-    .buzzshot-container {
-      /* maintain 4:3 aspect ratio */
-      aspect-ratio: 4 / 3;
-      /* allow it to fill the container */
-      max-width: 100%;
-      max-height: 100%;
-      /* scale by 2.35× relative to its flex container */
-      transform: scale(2.35);
-      transform-origin: center center;
-    }
     .buzzshot-container iframe {
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       border: none;
       background: transparent;
     }
 
-    /* 16:9 overlay video, always 100% of container */
+    /* top layer: transparent 16:9 video fills wrapper */
     #overlay-video {
       position: absolute;
       inset: 0;
@@ -59,8 +62,8 @@
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- 1) Centered & scaled 4:3 buzzshot slideshow -->
+  <div class="wrapper">
+    <!-- 1) Buzzshot embed behind -->
     <div class="embed-bg">
       <div class="buzzshot-container">
         <iframe
@@ -72,7 +75,7 @@
       </div>
     </div>
 
-    <!-- 2) Full-screen 16:9 transparent overlay video -->
+    <!-- 2) Transparent overlay video -->
     <video
       id="overlay-video"
       src="VertTV_AnimTEST.webm"
