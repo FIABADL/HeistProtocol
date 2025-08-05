@@ -1,140 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0"/>
   <title>Fox In A Box Lobby Slideshow</title>
-
-  <!-- Fun font -->
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
-
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0 }
+    /* reset */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 100%; height: 100%; overflow: hidden; }
 
-    .slideshow {
+    /* container holds both layers */
+    .container {
       position: relative;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* photo slideshow layer */
+    #slideshow-bg {
+      position: absolute;
+      top: 0; left: 0;
       width: 100%; height: 100%;
       background-size: cover;
       background-position: center;
-      font-family: 'Fredoka One', sans-serif;
-    }
-    /* dark overlay so BG images don’t overpower */
-    .slideshow::after {
-      content: '';
-      position: absolute; inset: 0;
-      background: rgba(0,0,0,0.3);
-      pointer-events: none;
+      transition: background-image 1s ease-in-out;
     }
 
-    .slide {
-      position: absolute; inset: 0;
-      display: flex; justify-content: center; align-items: center;
-      opacity: 0; transition: opacity 1s ease-in-out;
-      z-index: 1;
-    }
-    .slide.active { opacity: 1 }
-
-    /* PHOTO SLIDE */
-    #photo-slide img {
-      max-width: 90%; max-height: 90%;
-      border: 5px solid white;
-      box-shadow: 0 0 20px rgba(0,0,0,0.3);
-      object-fit: contain;
-    }
-
-    /* SOCIAL SLIDE */
-    .socials {
-      display: flex; justify-content: center; align-items: center;
-    }
-    .social-item {
-      display: flex; flex-direction: column;
-      align-items: center; margin: 0 1rem;
-    }
-    .social-item img {
-      width: 80px; height: 80px;
-      object-fit: contain; margin-bottom: 0.5rem;
-    }
-    .social-item p {
-      color: white; font-size: 1.5em;
-      text-shadow: 0 0 3px rgba(0,0,0,0.5);
-      margin: 0;
+    /* Canva embed goes on top */
+    .canva-wrapper {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 2;
+      overflow: auto;
     }
   </style>
 </head>
 <body>
-  <div class="slideshow" id="slideshow">
+  <div class="container">
+    <!-- photo slideshow background -->
+    <div id="slideshow-bg"></div>
 
-    <!-- 1) Team Photos -->
-    <div class="slide" id="photo-slide">
-      <img id="team-photo" src="" alt="Team photo">
-    </div>
-
-    <!-- 2) Socials -->
-    <div class="slide" id="social-slide">
-      <div class="socials">
-        <div class="social-item">
-          <img src="Facebook.png" alt="Facebook logo">
-          <p>@foxinaboxadelaide</p>
-        </div>
-        <div class="social-item">
-          <img src="Instagram.png" alt="Instagram logo">
-          <p>@foxinaboxadelaide</p>
-        </div>
-        <div class="social-item">
-          <img src="TikTok.png" alt="TikTok logo">
-          <p>@foxinaboxadelaide</p>
-        </div>
+    <!-- Canva embed on top -->
+    <div class="canva-wrapper">
+      <div style="position: relative; width: 100%; height: 0; padding-top: 177.7778%; box-shadow: 0 2px 8px rgba(63,69,81,0.16); margin: 1.6em 0 0.9em; overflow: hidden; border-radius: 8px; will-change: transform;">
+        <iframe
+          loading="lazy"
+          style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; border: none; background: transparent;"
+          src="https://www.canva.com/design/DAGvLIhXWoI/PASChCJbWzzevjt76fb6FA/watch?embed"
+          allowfullscreen
+          allow="fullscreen">
+        </iframe>
       </div>
+      <center>
+        <a
+          href="https://www.canva.com/design/DAGvLIhXWoI/PASChCJbWzzevjt76fb6FA/watch?utm_content=DAGvLIhXWoI&amp;utm_campaign=designshare&amp;utm_medium=embeds&amp;utm_source=link"
+          target="_blank"
+          rel="noopener"
+          style="color: gray; text-decoration: none;">
+          FOX IN A BOX ADELAIDE
+        </a> by Cohen McRae
+      </center>
     </div>
-
   </div>
 
   <script>
-    const slideshow  = document.getElementById('slideshow');
-    const slides     = Array.from(document.querySelectorAll('.slide'));
-    const photos     = [
+    // list your team-photo files here
+    const bgImages = [
       'TV Test/photo1.jpg',
       'TV Test/photo2.jpg',
       'TV Test/photo3.jpg'
-      // …add all your team photo filenames here…
+      // …add the rest of your filenames…
     ];
-    const bgImages   = [
-      'Images/bg1.jpg',
-      'Images/bg2.jpg',
-      'Images/bg3.jpg'
-      // …add all your background filenames here…
-    ];
-    const cycleMs    = 10_000;  // 10s per slide
-    let lastIndex    = -1;
+    const slideshowBg = document.getElementById('slideshow-bg');
+    const cycleMs = 10000; // 10s per photo
+    let lastImg = '';
 
     function randomChoice(arr) {
       return arr[Math.floor(Math.random() * arr.length)];
     }
 
-    function nextSlide() {
-      let idx;
+    function nextBackground() {
+      if (bgImages.length === 0) return;
+      let img;
       do {
-        // photo ~80%, socials ~20%
-        idx = (Math.random() < 0.2) ? 1 : 0;
-      } while (idx === lastIndex);
-      lastIndex = idx;
-
-      // if photo slide, pick a random team photo
-      if (idx === 0) {
-        document.getElementById('team-photo').src = randomChoice(photos);
-      }
-
-      // rotate background
-      slideshow.style.backgroundImage = `url(${randomChoice(bgImages)})`;
-
-      // show selected slide
-      slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+        img = randomChoice(bgImages);
+      } while (arr.length > 1 && img === lastImg);
+      lastImg = img;
+      slideshowBg.style.backgroundImage = `url(${img})`;
     }
 
-    // start cycling
-    nextSlide();
-    setInterval(nextSlide, cycleMs);
+    // start and repeat
+    nextBackground();
+    setInterval(nextBackground, cycleMs);
   </script>
 </body>
 </html>
