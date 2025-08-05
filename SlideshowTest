@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
+  <title>Fox In A Box Lobby Slideshow</title>
+
+  <!-- Fun font -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0 }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+
+    .slideshow {
+      position: relative;
+      width: 100%; height: 100%;
+      background-size: cover;
+      background-position: center;
+      font-family: 'Fredoka One', sans-serif;
+    }
+    /* dark overlay so BG images don’t overpower */
+    .slideshow::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.3);
+      pointer-events: none;
+    }
+
+    .slide {
+      position: absolute; inset: 0;
+      display: flex; justify-content: center; align-items: center;
+      opacity: 0; transition: opacity 1s ease-in-out;
+      z-index: 1;
+    }
+    .slide.active { opacity: 1 }
+
+    /* PHOTO SLIDE */
+    #photo-slide img {
+      max-width: 90%; max-height: 90%;
+      border: 5px solid white;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      object-fit: contain;
+    }
+
+    /* SOCIAL SLIDE */
+    .socials {
+      display: flex; justify-content: center; align-items: center;
+    }
+    .social-item {
+      display: flex; flex-direction: column;
+      align-items: center; margin: 0 1rem;
+    }
+    .social-item img {
+      width: 80px; height: 80px;
+      object-fit: contain; margin-bottom: 0.5rem;
+    }
+    .social-item p {
+      color: white; font-size: 1.5em;
+      text-shadow: 0 0 3px rgba(0,0,0,0.5);
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="slideshow" id="slideshow">
+
+    <!-- 1) Team Photos -->
+    <div class="slide" id="photo-slide">
+      <img id="team-photo" src="" alt="Team photo">
+    </div>
+
+    <!-- 2) Socials -->
+    <div class="slide" id="social-slide">
+      <div class="socials">
+        <div class="social-item">
+          <img src="Facebook.png" alt="Facebook logo">
+          <p>@foxinaboxadelaide</p>
+        </div>
+        <div class="social-item">
+          <img src="Instagram.png" alt="Instagram logo">
+          <p>@foxinaboxadelaide</p>
+        </div>
+        <div class="social-item">
+          <img src="TikTok.png" alt="TikTok logo">
+          <p>@foxinaboxadelaide</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const slideshow  = document.getElementById('slideshow');
+    const slides     = Array.from(document.querySelectorAll('.slide'));
+    const photos     = [
+      'TV Test/photo1.jpg',
+      'TV Test/photo2.jpg',
+      'TV Test/photo3.jpg'
+      // …add all your team photo filenames here…
+    ];
+    const bgImages   = [
+      'Images/bg1.jpg',
+      'Images/bg2.jpg',
+      'Images/bg3.jpg'
+      // …add all your background filenames here…
+    ];
+    const cycleMs    = 10_000;  // 10s per slide
+    let lastIndex    = -1;
+
+    function randomChoice(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function nextSlide() {
+      let idx;
+      do {
+        // photo ~80%, socials ~20%
+        idx = (Math.random() < 0.2) ? 1 : 0;
+      } while (idx === lastIndex);
+      lastIndex = idx;
+
+      // if photo slide, pick a random team photo
+      if (idx === 0) {
+        document.getElementById('team-photo').src = randomChoice(photos);
+      }
+
+      // rotate background
+      slideshow.style.backgroundImage = `url(${randomChoice(bgImages)})`;
+
+      // show selected slide
+      slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    }
+
+    // start cycling
+    nextSlide();
+    setInterval(nextSlide, cycleMs);
+  </script>
+</body>
+</html>
