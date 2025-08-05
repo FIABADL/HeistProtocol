@@ -2,25 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0"/>
   <title>Fox In A Box Lobby Slideshow</title>
   <style>
     /* reset */
-    * { box-sizing: border-box; margin: 0; padding: 0 }
-    html, body { width: 100%; height: 100%; overflow: hidden }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
 
-    /* wrapper keeps a 16:9 box, full‐width, centered vertically */
-    .wrapper {
-      position: absolute;
-      top: 50%; left: 50%;
-      width: 100vw;
-      aspect-ratio: 16 / 9;
-      transform: translate(-50%, -50%);
+    /* container holds embed and video */
+    .container {
+      position: relative;
+      width: 100%;
+      height: 100vh;
       overflow: hidden;
       background: transparent;
     }
 
-    /* 4:3 embed behind */
+    /* Buzzshot embed centered in a 4:3 box, scaled down 15% and moved down 2px */
     .embed-bg {
       position: absolute;
       inset: 0;
@@ -31,25 +29,25 @@
       overflow: hidden;
     }
     .buzzshot-container {
-      position: absolute;
-      top: 50%; left: 50%;
-      /* fill wrapper height */
-      height: 100%;
       aspect-ratio: 4 / 3;
-      /* center then scale */
-      transform: translate(-50%, -50%) scale(2.35);
+      max-width: 100%;
+      max-height: 100%;
+      position: relative;
+      top: 2px;                            /* move down 2px */
+      transform: scale(2.35);             /* 2.5 × 0.85 = 2.125 for 15% smaller */
       transform-origin: center center;
     }
     .buzzshot-container iframe {
-      width: 100%; height: 100%;
+      width: 100%;
+      height: 100%;
       border: none;
       background: transparent;
     }
 
-    /* 16:9 video on top */
+    /* overlay video with transparent areas */
     #overlay-video {
       position: absolute;
-      inset: 0;
+      top: 0; left: 0;
       width: 100%; height: 100%;
       object-fit: contain;
       background: transparent;
@@ -59,24 +57,27 @@
   </style>
 </head>
 <body>
-  <div class="wrapper">
-    <!-- Buzzshot behind -->
+  <div class="container">
     <div class="embed-bg">
       <div class="buzzshot-container">
         <iframe
           src="https://buzzshot.com/widgets/embed/953575865701405abe758c56427ff634/"
+          frameborder="0"
           scrolling="no"
-          allowtransparency="true"
-        ></iframe>
+          allowtransparency="true">
+        </iframe>
       </div>
     </div>
 
-    <!-- Overlay video -->
     <video
       id="overlay-video"
       src="VertTV_AnimTEST.webm"
-      autoplay loop muted playsinline preload="auto"
-    ></video>
+      autoplay
+      loop
+      muted
+      playsinline
+      preload="auto">
+    </video>
   </div>
 </body>
 </html>
