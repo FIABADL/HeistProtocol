@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0"/>
   <title>Fox In A Box Lobby Slideshow</title>
   <style>
-    /* reset */
+    /* reset + black background */
     * { box-sizing: border-box; margin: 0; padding: 0 }
-    html, body { width: 100%; height: 100%; overflow: hidden }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #000 }
 
     /* full‐screen container */
     .container {
@@ -15,9 +15,10 @@
       width: 100vw;
       height: 100vh;
       overflow: hidden;
+      background: transparent;
     }
 
-    /* Buzzshot embed centered behind */
+    /* Buzzshot embed centered behind (original zoom behavior) */
     .embed-bg {
       position: absolute;
       inset: 0;
@@ -28,15 +29,13 @@
       overflow: hidden;
     }
     .buzzshot-container {
-      position: absolute;
-      top: 50%; left: 50%;
-      /* always fill container height */
-      height: 100%;
       aspect-ratio: 4 / 3;
-      /* center, then scale 2.125×, then nudge down */
-      transform: translate(-50%, -50%) scale(2.45) translateY(2px);
+      max-width: 100%;
+      max-height: 100%;
+      position: relative;
+      top: 2px;                /* nudge down 2px */
+      transform: scale(2.125); /* original 2.125× scaling */
       transform-origin: center center;
-      overflow: hidden;
     }
     .buzzshot-container iframe {
       width: 100%;
@@ -59,22 +58,27 @@
 </head>
 <body>
   <div class="container">
-    <!-- Buzzshot team photos behind -->
+    <!-- 1) Buzzshot embed behind -->
     <div class="embed-bg">
       <div class="buzzshot-container">
         <iframe
           src="https://buzzshot.com/widgets/embed/953575865701405abe758c56427ff634/"
+          frameborder="0"
           scrolling="no"
           allowtransparency="true">
         </iframe>
       </div>
     </div>
 
-    <!-- Transparent overlay video (now cover) -->
+    <!-- 2) Transparent overlay video -->
     <video
       id="overlay-video"
       src="VertTV_AnimTEST.webm"
-      autoplay loop muted playsinline preload="auto">
+      autoplay
+      loop
+      muted
+      playsinline
+      preload="auto">
     </video>
   </div>
 </body>
