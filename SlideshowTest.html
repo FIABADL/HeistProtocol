@@ -18,7 +18,7 @@
       background: transparent;
     }
 
-    /* Buzzshot embed centered in a 4:3 box, scaled up 2.5× */
+    /* Buzzshot embed centered in a 4:3 box, scaled down 15% and moved down 2px */
     .embed-bg {
       position: absolute;
       inset: 0;
@@ -30,11 +30,11 @@
     }
     .buzzshot-container {
       aspect-ratio: 4 / 3;
-      /* fill the available space before scaling */
       max-width: 100%;
       max-height: 100%;
-      /* scale up 2.5× */
-      transform: scale(2.5);
+      position: relative;
+      top: 2px;                            /* move down 2px */
+      transform: scale(2.125);             /* 2.5 × 0.85 = 2.125 for 15% smaller */
       transform-origin: center center;
     }
     .buzzshot-container iframe {
@@ -58,7 +58,6 @@
 </head>
 <body>
   <div class="container">
-    <!-- 1) Buzzshot embed centered 4:3 and scaled -->
     <div class="embed-bg">
       <div class="buzzshot-container">
         <iframe
@@ -70,7 +69,6 @@
       </div>
     </div>
 
-    <!-- 2) Transparent WEBM overlay -->
     <video
       id="overlay-video"
       src="VertTV_AnimTEST.webm"
