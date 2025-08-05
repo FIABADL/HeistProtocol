@@ -9,7 +9,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 100%; height: 100%; overflow: hidden; }
 
-    /* container holds embed and video */
+    /* fill the viewport */
     .container {
       position: relative;
       width: 100%;
@@ -18,7 +18,7 @@
       background: transparent;
     }
 
-    /* Buzzshot embed centered in a 4:3 box, scaled down 15% and moved down 2px */
+    /* 4:3 buzzshot embed, centered and scaled */
     .embed-bg {
       position: absolute;
       inset: 0;
@@ -29,12 +29,13 @@
       overflow: hidden;
     }
     .buzzshot-container {
+      /* maintain 4:3 aspect ratio */
       aspect-ratio: 4 / 3;
+      /* allow it to fill the container */
       max-width: 100%;
       max-height: 100%;
-      position: relative;
-      top: 2px;                            /* move down 2px */
-      transform: scale(2.35);             /* 2.5 × 0.85 = 2.125 for 15% smaller */
+      /* scale by 2.35× relative to its flex container */
+      transform: scale(2.35);
       transform-origin: center center;
     }
     .buzzshot-container iframe {
@@ -44,11 +45,12 @@
       background: transparent;
     }
 
-    /* overlay video with transparent areas */
+    /* 16:9 overlay video, always 100% of container */
     #overlay-video {
       position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+      inset: 0;
+      width: 100%;
+      height: 100%;
       object-fit: contain;
       background: transparent;
       z-index: 2;
@@ -58,6 +60,7 @@
 </head>
 <body>
   <div class="container">
+    <!-- 1) Centered & scaled 4:3 buzzshot slideshow -->
     <div class="embed-bg">
       <div class="buzzshot-container">
         <iframe
@@ -69,6 +72,7 @@
       </div>
     </div>
 
+    <!-- 2) Full-screen 16:9 transparent overlay video -->
     <video
       id="overlay-video"
       src="VertTV_AnimTEST.webm"
