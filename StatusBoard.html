@@ -1,8 +1,4 @@
-# Create updated HTML with requested changes:
-# - Button labels: "View All Rooms" and "Change Room Status"
-# - Replace dropdown with horizontal room tiles like the provided image (colors + abbreviations)
-# - Fix room name "Tesla's Mystery"
-html_v2 = r"""<!doctype html>
+html_v3 = r"""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -14,11 +10,11 @@ html_v2 = r"""<!doctype html>
   <style>
     :root {
       --bg:#0e0f12; --panel:#17181d; --muted:#a8adbd; --text:#e8eaf2;
-      --ready:#2ea043; --reset:#eab308; --pre:#38bdf8; --ingame:#ef4444;
+      --ready:#2ea043; --pre:#38bdf8; --resetting:#9ca3af; --reset:#eab308; --ingame:#ef4444;
     }
     * { box-sizing:border-box; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif }
     body { margin:0; background:var(--bg); color:var(--text) }
-    .wrap { max-width:1100px; margin:0 auto; padding:24px }
+    .wrap { max-width:1200px; margin:0 auto; padding:24px }
     h1 { margin:0 0 12px }
     .banner { display:none; background:#231b1b; border-left:4px solid #ef4444; padding:10px; border-radius:10px; margin-bottom:12px }
     .ok { background:#16231b; border-left-color:#2ea043 }
@@ -32,23 +28,31 @@ html_v2 = r"""<!doctype html>
     .badge { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; border:1px solid #2b2f3b; font-weight:600 }
     .dot { width:10px; height:10px; border-radius:50% }
     .legend { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 0 }
-    .controls { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px }
     .subtle { color:var(--muted); font-size:13px }
 
     /* Room tile bar */
     .room-bar-wrap { margin-top:8px; }
-    .room-bar {
-      display:flex; gap:6px; overflow-x:auto; padding-bottom:6px;
-      scrollbar-width: thin;
-    }
+    .room-bar { display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; scrollbar-width:thin }
     .room-tile {
-      min-width: 150px; height: 36px; border-radius:8px; display:flex; align-items:center; justify-content:center;
-      color:#1a1a1a; font-weight:800; letter-spacing:.5px; user-select:none; border:1px solid rgba(0,0,0,.2);
+      min-width: 190px; height: 38px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+      color:#111; font-weight:800; letter-spacing:.5px; user-select:none; border:1px solid rgba(0,0,0,.25);
       transition: transform .08s ease, outline-color .2s ease;
     }
     .room-tile:hover { transform: translateY(-1px); }
     .room-tile.selected { outline:3px solid #ffffff55; }
-    .room-abbr { opacity:.8 }
+    .room-title { font-weight:700; margin:10px 0 8px }
+
+    /* Quick pad */
+    .pad { display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:10px; }
+    .pad button {
+      font-size:15px; font-weight:800; height:48px; border-radius:8px; border-width:2px;
+      background:#6b7280; /* default */
+    }
+    .pad .b-ready { background:var(--ready) }
+    .pad .b-preroom { background:var(--pre) }
+    .pad .b-resetting { background:var(--resetting) }
+    .pad .b-reset { background:var(--reset) }
+    .pad .b-ingame { background:var(--ingame); color:#fff }
   </style>
 </head>
 <body>
@@ -72,8 +76,9 @@ html_v2 = r"""<!doctype html>
     </div>
     <div class="legend">
       <span class="badge"><span class="dot" style="background:var(--ready)"></span>Ready</span>
-      <span class="badge"><span class="dot" style="background:var(--reset)"></span>Needs Reset</span>
       <span class="badge"><span class="dot" style="background:var(--pre)"></span>Needs Pre-room</span>
+      <span class="badge"><span class="dot" style="background:var(--resetting)"></span>Resetting</span>
+      <span class="badge"><span class="dot" style="background:var(--reset)"></span>Needs Reset</span>
       <span class="badge"><span class="dot" style="background:var(--ingame)"></span>In-game</span>
     </div>
     <div id="hostGrid" class="grid"></div>
@@ -84,38 +89,38 @@ html_v2 = r"""<!doctype html>
       <strong>Change Room Status</strong>
       <button onclick="showPicker()">← Back</button>
     </div>
-    <div class="subtle">Select a room below:</div>
-    <div class="room-bar-wrap">
-      <div id="roomBar" class="room-bar"></div>
-    </div>
-    <div id="roomStatus" class="subtle" style="margin-top:6px">Current status: —</div>
-    <div class="controls">
-      <button onclick="setStatus('Ready')">Ready</button>
-      <button onclick="setStatus('Needs Reset')">Needs Reset</button>
-      <button onclick="setStatus('Needs Pre-room')">Needs Pre-room</button>
-      <button onclick="setStatus('In-game')">In-game</button>
+    <div class="subtle">Click a room below, then tap a big button to set the status.</div>
+    <div class="room-bar-wrap"><div id="roomBar" class="room-bar"></div></div>
+    <div id="currentRoomTitle" class="room-title"></div>
+    <div id="roomStatus" class="subtle">Current status: —</div>
+    <div class="pad" style="margin-top:10px">
+      <button class="b-ready" onclick="setStatus('Ready')">READY</button>
+      <button class="b-preroom" onclick="setStatus('Needs Pre-room')">NEEDS PRE-ROOM</button>
+      <button class="b-resetting" onclick="setStatus('Resetting')">RESETTING</button>
+      <button class="b-reset" onclick="setStatus('Needs Reset')">NEEDS RESET</button>
+      <button class="b-ingame" onclick="setStatus('In-game')">IN GAME</button>
     </div>
   </div>
 </div>
 
 <script>
-  // Room data (fixed order + colors + abbreviations)
+  // Room data
   const roomData = [
-    { name:"Bunker 2", abbr:"B2", color:"#a4f2a4" },
-    { name:"Bunker 1", abbr:"B1", color:"#065f1a" },
-    { name:"Wild West Saloon", abbr:"WWS", color:"#ffd300" },
-    { name:"Chamber of Lost Legends", abbr:"COLL", color:"#8a4b13" },
-    { name:"Tesla's Mystery", abbr:"TM", color:"#8a8a8a" },
-    { name:"Zodiac Killer", abbr:"ZK", color:"#000000" },
-    { name:"Prison Break 1", abbr:"PB1", color:"#ffb296" },
-    { name:"Prison Break 2", abbr:"PB2", color:"#7b0006" },
-    { name:"The Other Side", abbr:"TOS", color:"#7b0f8f" },
-    { name:"Zombie Lab", abbr:"ZL", color:"#bfe8f6" },
-    { name:"Mastermind: A Heist Story", abbr:"MH", color:"#001aa8" }
+    { name:"Bunker 2", abbr:"BUNKER 2", color:"#a4f2a4" },
+    { name:"Bunker 1", abbr:"BUNKER 1", color:"#065f1a", text:"#e5ffe5" },
+    { name:"Wild West Saloon", abbr:"WILD WEST SALOON", color:"#ffd300" },
+    { name:"Chamber of Lost Legends", abbr:"CHAMBER OF LOST LEGENDS", color:"#8a4b13", text:"#fff" },
+    { name:"Tesla's Mystery", abbr:"TESLA'S MYSTERY", color:"#8a8a8a" },
+    { name:"Zodiac Killer", abbr:"ZODIAC KILLER", color:"#000000", text:"#ff3b3b" },
+    { name:"Prison Break 1", abbr:"PRISON BREAK 1", color:"#ffb296" },
+    { name:"Prison Break 2", abbr:"PRISON BREAK 2", color:"#7b0006", text:"#ffdede" },
+    { name:"The Other Side", abbr:"THE OTHER SIDE", color:"#7b0f8f", text:"#eecbff" },
+    { name:"Zombie Lab", abbr:"ZOMBIE LAB", color:"#bfe8f6" },
+    { name:"Mastermind: A Heist Story", abbr:"MASTERMIND: A HEIST STORY", color:"#001aa8", text:"#b9c6ff" }
   ];
   const rooms = roomData.map(r => r.name);
 
-  // Config
+  // Firebase
   const firebaseConfig = {
     apiKey: "AIzaSyAP35nYn27RBPtU9DGObHyBLXKSkj-3eb4",
     authDomain: "room-status-fiabadl.firebaseapp.com",
@@ -126,6 +131,9 @@ html_v2 = r"""<!doctype html>
     appId: "1:491942494195:web:f6cc31819183baf9bd1c86",
     measurementId: "G-B7GVN01KG2"
   };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const auth = firebase.auth();
 
   // Helpers
   const $ = (id) => document.getElementById(id);
@@ -133,17 +141,14 @@ html_v2 = r"""<!doctype html>
   const showPicker = () => { $('hostPanel').style.display='none'; $('roomPanel').style.display='none'; $('rolePicker').style.display='block'; };
   const statusColor = (s) => ({
     "Ready":"var(--ready)",
-    "Needs Reset":"var(--reset)",
     "Needs Pre-room":"var(--pre)",
+    "Resetting":"var(--resetting)",
+    "Needs Reset":"var(--reset)",
     "In-game":"var(--ingame)"
   }[s] || "var(--muted)");
   const encodeKey = (name) => name.replaceAll('.', '(dot)').replaceAll('#','(hash)').replaceAll('$','(dol)').replaceAll('[','(lb)').replaceAll(']','(rb)');
 
-  // Firebase init
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-  const auth = firebase.auth();
-
+  // Auth
   auth.onAuthStateChanged(async (u) => {
     if (!u) return;
     banner("Connected ✓", true);
@@ -151,7 +156,7 @@ html_v2 = r"""<!doctype html>
     $('roomBtn').disabled = false;
 
     $('hostBtn').onclick = () => { $('rolePicker').style.display='none'; $('hostPanel').style.display='block'; initHost(); };
-    $('roomBtn').onclick = () => { $('rolePicker').style.display='none'; $('roomPanel').style.display='block'; initRoomTiles(); };
+    $('roomBtn').onclick = () => { $('rolePicker').style.display='none'; $('roomPanel').style.display='block'; initRoomBar(); };
 
     $('seedBtn').onclick = async () => {
       const root = db.ref('rooms'); const s = await root.get();
@@ -167,7 +172,6 @@ html_v2 = r"""<!doctype html>
       await root.set(seed); banner("Seeded: all rooms set to Ready.", true);
     }
   });
-
   auth.signInAnonymously().catch(e => banner("Anonymous sign-in error: "+e.message));
   db.ref('.info/connected').on('value', s => console.log('RTDB connected?', s.val()));
 
@@ -186,32 +190,32 @@ html_v2 = r"""<!doctype html>
     });
   }
 
-  // Room tile UI
+  // Room bar + quick pad
   let currentRoom = rooms[0];
   let currentRef = null;
 
-  function initRoomTiles(){
-    const bar = $('roomBar'); bar.innerHTML = '';
+  function initRoomBar(){
+    const bar = $('roomBar'); bar.innerHTML='';
     roomData.forEach(rd => {
       const tile = document.createElement('div');
       tile.className = 'room-tile';
       tile.style.background = rd.color;
-      tile.innerHTML = `<span class="room-abbr">${rd.abbr}</span>`;
+      if (rd.text) tile.style.color = rd.text;
+      tile.textContent = rd.abbr;
       tile.title = rd.name;
       tile.onclick = () => selectRoom(rd.name, tile);
       bar.appendChild(tile);
     });
-    // select first by default
     const firstTile = bar.firstElementChild;
     if (firstTile) selectRoom(roomData[0].name, firstTile);
   }
 
   function selectRoom(roomName, tileEl){
     currentRoom = roomName;
-    // highlight
     [...document.querySelectorAll('.room-tile')].forEach(el => el.classList.remove('selected'));
     tileEl.classList.add('selected');
-    // listen to status
+    $('currentRoomTitle').textContent = roomName;
+
     if (currentRef) currentRef.off();
     currentRef = db.ref(`rooms/${encodeKey(roomName)}/status`);
     currentRef.on('value', snap => {
@@ -228,7 +232,3 @@ html_v2 = r"""<!doctype html>
 </script>
 </body>
 </html>
-"""
-with open("/mnt/data/index_prod_v2.html", "w", encoding="utf-8") as f:
-    f.write(html_v2)
-"/mnt/data/index_prod_v2.html"
