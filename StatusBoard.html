@@ -1,4 +1,8 @@
-<!doctype html>
+# Create updated HTML with requested changes:
+# - Button labels: "View All Rooms" and "Change Room Status"
+# - Replace dropdown with horizontal room tiles like the provided image (colors + abbreviations)
+# - Fix room name "Tesla's Mystery"
+html_v2 = r"""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -21,7 +25,7 @@
     .panel { background:#17181d; border-radius:16px; padding:16px; }
     .row { display:flex; gap:8px; align-items:center; justify-content:space-between }
     .role-buttons { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px }
-    button, select { background:#1f222b; color:var(--text); border:1px solid #2a2e3a; padding:10px 14px; border-radius:10px; cursor:pointer }
+    button { background:#1f222b; color:var(--text); border:1px solid #2a2e3a; padding:10px 14px; border-radius:10px; cursor:pointer }
     button[disabled] { opacity:.6; cursor:not-allowed }
     .grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap:12px; margin-top:12px }
     .card { background:#121319; border:1px solid #222632; border-radius:14px; padding:12px }
@@ -30,6 +34,21 @@
     .legend { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 0 }
     .controls { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px }
     .subtle { color:var(--muted); font-size:13px }
+
+    /* Room tile bar */
+    .room-bar-wrap { margin-top:8px; }
+    .room-bar {
+      display:flex; gap:6px; overflow-x:auto; padding-bottom:6px;
+      scrollbar-width: thin;
+    }
+    .room-tile {
+      min-width: 150px; height: 36px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+      color:#1a1a1a; font-weight:800; letter-spacing:.5px; user-select:none; border:1px solid rgba(0,0,0,.2);
+      transition: transform .08s ease, outline-color .2s ease;
+    }
+    .room-tile:hover { transform: translateY(-1px); }
+    .room-tile.selected { outline:3px solid #ffffff55; }
+    .room-abbr { opacity:.8 }
   </style>
 </head>
 <body>
@@ -40,15 +59,15 @@
   <div id="rolePicker" class="panel">
     <div class="subtle">Choose how you want to view/update rooms.</div>
     <div class="role-buttons">
-      <button id="hostBtn" disabled>HOST (view all)</button>
-      <button id="roomBtn" disabled>ROOM (update one)</button>
+      <button id="hostBtn" disabled>View All Rooms</button>
+      <button id="roomBtn" disabled>Change Room Status</button>
       <button id="seedBtn" title="Set all rooms to Ready (runs once if needed)">Seed Rooms</button>
     </div>
   </div>
 
   <div id="hostPanel" class="panel" style="display:none">
     <div class="row">
-      <strong>Host View</strong>
+      <strong>All Rooms</strong>
       <button onclick="showPicker()">← Back</button>
     </div>
     <div class="legend">
@@ -62,14 +81,14 @@
 
   <div id="roomPanel" class="panel" style="display:none">
     <div class="row">
-      <strong>Room View</strong>
+      <strong>Change Room Status</strong>
       <button onclick="showPicker()">← Back</button>
     </div>
-    <div class="row" style="justify-content:flex-start">
-      <label for="roomSelect">Select room:&nbsp;</label>
-      <select id="roomSelect"></select>
+    <div class="subtle">Select a room below:</div>
+    <div class="room-bar-wrap">
+      <div id="roomBar" class="room-bar"></div>
     </div>
-    <div id="roomStatus" class="subtle">Current status: —</div>
+    <div id="roomStatus" class="subtle" style="margin-top:6px">Current status: —</div>
     <div class="controls">
       <button onclick="setStatus('Ready')">Ready</button>
       <button onclick="setStatus('Needs Reset')">Needs Reset</button>
@@ -80,10 +99,21 @@
 </div>
 
 <script>
-  const rooms = [
-    "Bunker 2","Bunker 1","Wild West Saloon","Chamber of Lost Legends","Tesla's Myster",
-    "Zodiac Killer","Prison Break 1","Prison Break 2","The Other Side","Zombie Lab","Mastermind: A Heist Story"
+  // Room data (fixed order + colors + abbreviations)
+  const roomData = [
+    { name:"Bunker 2", abbr:"B2", color:"#a4f2a4" },
+    { name:"Bunker 1", abbr:"B1", color:"#065f1a" },
+    { name:"Wild West Saloon", abbr:"WWS", color:"#ffd300" },
+    { name:"Chamber of Lost Legends", abbr:"COLL", color:"#8a4b13" },
+    { name:"Tesla's Mystery", abbr:"TM", color:"#8a8a8a" },
+    { name:"Zodiac Killer", abbr:"ZK", color:"#000000" },
+    { name:"Prison Break 1", abbr:"PB1", color:"#ffb296" },
+    { name:"Prison Break 2", abbr:"PB2", color:"#7b0006" },
+    { name:"The Other Side", abbr:"TOS", color:"#7b0f8f" },
+    { name:"Zombie Lab", abbr:"ZL", color:"#bfe8f6" },
+    { name:"Mastermind: A Heist Story", abbr:"MH", color:"#001aa8" }
   ];
+  const rooms = roomData.map(r => r.name);
 
   // Config
   const firebaseConfig = {
@@ -100,7 +130,6 @@
   // Helpers
   const $ = (id) => document.getElementById(id);
   const banner = (msg, ok=false) => { const b=$('statusBanner'); b.textContent=msg; b.className='banner'+(ok?' ok':''); b.style.display='block'; };
-  const hideBanner = () => { $('statusBanner').style.display='none'; };
   const showPicker = () => { $('hostPanel').style.display='none'; $('roomPanel').style.display='none'; $('rolePicker').style.display='block'; };
   const statusColor = (s) => ({
     "Ready":"var(--ready)",
@@ -111,76 +140,95 @@
   const encodeKey = (name) => name.replaceAll('.', '(dot)').replaceAll('#','(hash)').replaceAll('$','(dol)').replaceAll('[','(lb)').replaceAll(']','(rb)');
 
   // Firebase init
-  if (!window.firebase) {
-    banner("Firebase SDK failed to load (blocked or offline).");
-  } else {
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const auth = firebase.auth();
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const auth = firebase.auth();
 
-    // Wait for auth before enabling buttons
-    auth.onAuthStateChanged(async (u) => {
-      if (!u) return;
-      banner("Connected ✓", true);
-      $('hostBtn').disabled = false;
-      $('roomBtn').disabled = false;
+  auth.onAuthStateChanged(async (u) => {
+    if (!u) return;
+    banner("Connected ✓", true);
+    $('hostBtn').disabled = false;
+    $('roomBtn').disabled = false;
 
-      // Button handlers
-      $('hostBtn').onclick = () => { $('rolePicker').style.display='none'; $('hostPanel').style.display='block'; initHost(); };
-      $('roomBtn').onclick = () => { $('rolePicker').style.display='none'; $('roomPanel').style.display='block'; initRoom(); };
-      $('seedBtn').onclick = async () => {
-        const root = db.ref('rooms'); const s = await root.get();
-        if (s.exists()) { banner("Rooms already exist — not reseeding."); return; }
-        const seed = {}; rooms.forEach(n => seed[encodeKey(n)] = { status:"Ready", updatedAt:Date.now() });
-        await root.set(seed); banner("Seeded: all rooms set to Ready.", true);
-      };
+    $('hostBtn').onclick = () => { $('rolePicker').style.display='none'; $('hostPanel').style.display='block'; initHost(); };
+    $('roomBtn').onclick = () => { $('rolePicker').style.display='none'; $('roomPanel').style.display='block'; initRoomTiles(); };
 
-      // Auto-seed if /rooms missing (first-ever run)
-      try {
-        const root = db.ref('rooms'); const s = await root.get();
-        if (!s.exists()) {
-          const seed = {}; rooms.forEach(n => seed[encodeKey(n)] = { status:"Ready", updatedAt:Date.now() });
-          await root.set(seed); banner("Seeded: all rooms set to Ready.", true);
-        }
-      } catch(e){ console.error(e); }
-    });
+    $('seedBtn').onclick = async () => {
+      const root = db.ref('rooms'); const s = await root.get();
+      if (s.exists()) { banner("Rooms already exist — not reseeding."); return; }
+      const seed = {}; rooms.forEach(n => seed[encodeKey(n)] = { status:"Ready", updatedAt:Date.now() });
+      await root.set(seed); banner("Seeded: all rooms set to Ready.", true);
+    };
 
-    auth.signInAnonymously().catch(e => banner("Anonymous sign-in error: "+e.message));
-    db.ref('.info/connected').on('value', s => console.log('RTDB connected?', s.val()));
+    // Auto-seed if empty
+    const root = db.ref('rooms'); const s = await root.get();
+    if (!s.exists()) {
+      const seed = {}; rooms.forEach(n => seed[encodeKey(n)] = { status:"Ready", updatedAt:Date.now() });
+      await root.set(seed); banner("Seeded: all rooms set to Ready.", true);
+    }
+  });
 
-    // Host view
-    function initHost(){
-      const hostGrid = $('hostGrid'); hostGrid.innerHTML='';
-      rooms.forEach((name) => {
-        const card = document.createElement('div'); card.className='card';
-        card.innerHTML = `<div style="font-weight:600;margin-bottom:8px">${name}</div>
-          <div class="badge"><span class="dot"></span><span class="label">Loading…</span></div>`;
-        hostGrid.appendChild(card);
-        const dot = card.querySelector('.dot'); const label = card.querySelector('.label');
-        db.ref(`rooms/${encodeKey(name)}/status`).on('value', snap => {
-          const s = snap.val() || 'Unknown'; dot.style.background = statusColor(s); label.textContent = s;
-        });
+  auth.signInAnonymously().catch(e => banner("Anonymous sign-in error: "+e.message));
+  db.ref('.info/connected').on('value', s => console.log('RTDB connected?', s.val()));
+
+  // Host view
+  function initHost(){
+    const hostGrid = $('hostGrid'); hostGrid.innerHTML='';
+    rooms.forEach((name) => {
+      const card = document.createElement('div'); card.className='card';
+      card.innerHTML = `<div style="font-weight:600;margin-bottom:8px">${name}</div>
+        <div class="badge"><span class="dot"></span><span class="label">Loading…</span></div>`;
+      hostGrid.appendChild(card);
+      const dot = card.querySelector('.dot'); const label = card.querySelector('.label');
+      db.ref(`rooms/${encodeKey(name)}/status`).on('value', snap => {
+        const s = snap.val() || 'Unknown'; dot.style.background = statusColor(s); label.textContent = s;
       });
-    }
-
-    // Room view
-    const roomSelect = $('roomSelect'); const roomStatus = $('roomStatus');
-    function initRoom(){
-      roomSelect.innerHTML = rooms.map(r => `<option value="${r}">${r}</option>`).join('');
-      attachRoomListener(roomSelect.value);
-      roomSelect.onchange = () => attachRoomListener(roomSelect.value);
-    }
-    let currentRef = null;
-    function attachRoomListener(roomName){
-      if (currentRef) currentRef.off();
-      currentRef = db.ref(`rooms/${encodeKey(roomName)}/status`);
-      currentRef.on('value', snap => { roomStatus.textContent = `Current status: ${snap.val() || 'Unknown'}`; });
-      window.setStatus = async (status) => {
-        const ref = db.ref(`rooms/${encodeKey(roomName)}`);
-        await ref.update({ status, updatedAt: firebase.database.ServerValue.TIMESTAMP });
-      };
-    }
+    });
   }
+
+  // Room tile UI
+  let currentRoom = rooms[0];
+  let currentRef = null;
+
+  function initRoomTiles(){
+    const bar = $('roomBar'); bar.innerHTML = '';
+    roomData.forEach(rd => {
+      const tile = document.createElement('div');
+      tile.className = 'room-tile';
+      tile.style.background = rd.color;
+      tile.innerHTML = `<span class="room-abbr">${rd.abbr}</span>`;
+      tile.title = rd.name;
+      tile.onclick = () => selectRoom(rd.name, tile);
+      bar.appendChild(tile);
+    });
+    // select first by default
+    const firstTile = bar.firstElementChild;
+    if (firstTile) selectRoom(roomData[0].name, firstTile);
+  }
+
+  function selectRoom(roomName, tileEl){
+    currentRoom = roomName;
+    // highlight
+    [...document.querySelectorAll('.room-tile')].forEach(el => el.classList.remove('selected'));
+    tileEl.classList.add('selected');
+    // listen to status
+    if (currentRef) currentRef.off();
+    currentRef = db.ref(`rooms/${encodeKey(roomName)}/status`);
+    currentRef.on('value', snap => {
+      $('roomStatus').textContent = `Current status: ${snap.val() || 'Unknown'}`;
+    });
+  }
+
+  // Expose setStatus
+  async function setStatus(status){
+    const ref = db.ref(`rooms/${encodeKey(currentRoom)}`);
+    await ref.update({ status, updatedAt: firebase.database.ServerValue.TIMESTAMP });
+  }
+  window.setStatus = setStatus;
 </script>
 </body>
 </html>
+"""
+with open("/mnt/data/index_prod_v2.html", "w", encoding="utf-8") as f:
+    f.write(html_v2)
+"/mnt/data/index_prod_v2.html"
