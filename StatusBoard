@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Escape Room Status</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --bg:#0e0f12; --panel:#17181d; --muted:#a8adbd; --text:#e8eaf2;
+      --ready:#2ea043; --reset:#eab308; --pre:#38bdf8; --ingame:#ef4444;
+    }
+    * { box-sizing:border-box; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif }
+    body { margin:0; background:var(--bg); color:var(--text) }
+    .wrap { max-width:1100px; margin:0 auto; padding:24px }
+    h1 { margin:0 0 12px }
+    .banner { display:none; background:#231b1b; border-left:4px solid #ef4444; padding:10px; border-radius:10px; margin-bottom:12px }
+    .ok { background:#16231b; border-left-color:#2ea043 }
+    .panel { background:#17181d; border-radius:16px; padding:16px; }
+    .row { display:flex; gap:8px; align-items:center; justify-content:space-between }
+    .role-buttons { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px }
+    button, select { background:#1f222b; color:var(--text); border:1px solid #2a2e3a; padding:10px 14px; border-radius:10px; cursor:pointer }
+    button[disabled] { opacity:.6; cursor:not-allowed }
+    .grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap:12px; margin-top:12px }
+    .card { background:#121319; border:1px solid #222632; border-radius:14px; padding:12px }
+    .badge { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; border:1px solid #2b2f3b; font-weight:600 }
+    .dot { width:10px; height:10px; border-radius:50% }
+    .legend { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 0 }
+    .controls { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px }
+    .subtle { color:var(--muted); font-size:13px }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Escape Room Status</h1>
+  <div id="statusBanner" class="banner"></div>
+
+  <div id="rolePicker" class="panel">
+    <div class="subtle">Choose how you want to view/update rooms.</div>
+    <div class="role-buttons">
+      <button id="hostBtn" disabled>HOST (view all)</button>
+      <button id="roomBtn" disabled>ROOM (update one)</button>
+      <button id="seedBtn" title="Set all rooms to Ready (runs once if needed)">Seed Rooms</button>
+    </div>
+  </div>
+
+  <div id="hostPanel" class="panel" style="display:none">
+    <div class="row">
+      <strong>Host View</strong>
+      <button onclick="showPicker()">← Back</button>
+    </div>
+    <div class="legend">
+      <span class="badge"><span class="dot" style="background:var(--ready)"></span>Ready</span>
+      <span class="badge"><span class="dot" style="background:var(--reset)"></span>Needs Reset</span>
+      <span class="badge"><span class="dot" style="background:var(--pre)"></span>Needs Pre-room</span>
+      <span class="badge"><span class="dot" style="background:var(--ingame)"></span>In-game</span>
+    </div>
+    <div id="hostGrid" class="grid"></div>
+  </div>
+
+  <div id="roomPanel" class="panel" style="display:none">
+    <div class="row">
+      <strong>Room View</strong>
+      <button onclick="showPicker()">← Back</button>
+    </div>
+    <div class="row" style="justify-content:flex-start">
+      <label for="roomSelect">Select room:&nbsp;</label>
+      <select id="roomSelect"></select>
+    </div>
+    <div id="roomStatus" class="subtle">Current status: —</div>
+    <div class="controls">
+      <button onclick="setStatus('Ready')">Ready</button>
+      <button onclick="setStatus('Needs Reset')">Needs Reset</button>
+      <button onclick="setStatus('Needs Pre-room')">Needs Pre-room</button>
+      <button onclick="setStatus('In-game')">In-game</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const rooms = [
+    "Bunker 2","Bunker 1","Wild West Saloon","Chamber of Lost Legends","Tesla's Myster",
+    "Zodiac Killer","Prison Break 1","Prison Break 2","The Other Side","Zombie Lab","Mastermind: A Heist Story"
+  ];
+
+  // Config
+  const firebaseConfig = {
+    apiKey: "AIzaSyAP35nYn27RBPtU9DGObHyBLXKSkj-3eb4",
+    authDomain: "room-status-fiabadl.firebaseapp.com",
+    databaseURL: "https://room-status-fiabadl-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "room-status-fiabadl",
+    storageBucket: "room-status-fiabadl.firebasestorage.app",
+    messagingSenderId: "491942494195",
+    appId: "1:491942494195:web:f6cc31819183baf9bd1c86",
+    measurementId: "G-B7GVN01KG2"
+  };
+
+  // Helpers
+  const $ = (id) => document.getElementById(id);
+  const banner = (msg, ok=false) => { const b=$('statusBanner'); b.textContent=msg; b.className='banner'+(ok?' ok':''); b.style.display='block'; };
+  const hideBanner = () => { $('statusBanner').style.display='none'; };
+  const showPicker = () => { $('hostPanel').style.display='none'; $('roomPanel').style.display='none'; $('rolePicker').style.display='block'; };
+  const statusColor = (s) => ({
+    "Ready":"var(--ready)",
+    "Needs Reset":"var(--reset)",
+    "Needs Pre-room":"var(--pre)",
+    "In-game":"var(--ingame)"
+  }[s] || "var(--muted)");
+  const encodeKey = (name) => name.replaceAll('.', '(dot)').replaceAll('#','(hash)').replaceAll('$','(dol)').replaceAll('[','(lb)').replaceAll(']','(rb)');
+
+  // Firebase init
+  if (!window.firebase) {
+    banner("Firebase SDK failed to load (blocked or offline).");
+  } else {
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const auth = firebase.auth();
+
+    // Wait for auth before enabling buttons
+    auth.onAuthStateChanged(async (u) => {
+      if (!u) return;
+      banner("Connected ✓", true);
+      $('hostBtn').disabled = false;
+      $('roomBtn').disabled = false;
+
+      // Button handlers
+      $('hostBtn').onclick = () => { $('rolePicker').style.display='none'; $('hostPanel').style.display='block'; initHost(); };
+      $('roomBtn').onclick = () => { $('rolePicker').style.display='none'; $('roomPanel').style.display='block'; initRoom(); };
+      $('seedBtn').onclick = async () => {
+        const root = db.ref('rooms'); const s = await root.get();
+        if (s.exists()) { banner("Rooms already exist — not reseeding."); return; }
+        const seed = {}; rooms.forEach(n => seed[encodeKey(n)] = { status:"Ready", updatedAt:Date.now() });
+        await root.set(seed); banner("Seeded: all rooms set to Ready.", true);
+      };
+
+      // Auto-seed if /rooms missing (first-ever run)
+      try {
+        const root = db.ref('rooms'); const s = await root.get();
+        if (!s.exists()) {
+          const seed = {}; rooms.forEach(n => seed[encodeKey(n)] = { status:"Ready", updatedAt:Date.now() });
+          await root.set(seed); banner("Seeded: all rooms set to Ready.", true);
+        }
+      } catch(e){ console.error(e); }
+    });
+
+    auth.signInAnonymously().catch(e => banner("Anonymous sign-in error: "+e.message));
+    db.ref('.info/connected').on('value', s => console.log('RTDB connected?', s.val()));
+
+    // Host view
+    function initHost(){
+      const hostGrid = $('hostGrid'); hostGrid.innerHTML='';
+      rooms.forEach((name) => {
+        const card = document.createElement('div'); card.className='card';
+        card.innerHTML = `<div style="font-weight:600;margin-bottom:8px">${name}</div>
+          <div class="badge"><span class="dot"></span><span class="label">Loading…</span></div>`;
+        hostGrid.appendChild(card);
+        const dot = card.querySelector('.dot'); const label = card.querySelector('.label');
+        db.ref(`rooms/${encodeKey(name)}/status`).on('value', snap => {
+          const s = snap.val() || 'Unknown'; dot.style.background = statusColor(s); label.textContent = s;
+        });
+      });
+    }
+
+    // Room view
+    const roomSelect = $('roomSelect'); const roomStatus = $('roomStatus');
+    function initRoom(){
+      roomSelect.innerHTML = rooms.map(r => `<option value="${r}">${r}</option>`).join('');
+      attachRoomListener(roomSelect.value);
+      roomSelect.onchange = () => attachRoomListener(roomSelect.value);
+    }
+    let currentRef = null;
+    function attachRoomListener(roomName){
+      if (currentRef) currentRef.off();
+      currentRef = db.ref(`rooms/${encodeKey(roomName)}/status`);
+      currentRef.on('value', snap => { roomStatus.textContent = `Current status: ${snap.val() || 'Unknown'}`; });
+      window.setStatus = async (status) => {
+        const ref = db.ref(`rooms/${encodeKey(roomName)}`);
+        await ref.update({ status, updatedAt: firebase.database.ServerValue.TIMESTAMP });
+      };
+    }
+  }
+</script>
+</body>
+</html>
