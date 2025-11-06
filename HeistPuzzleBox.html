@@ -23,6 +23,8 @@
     .wire .label { flex:1; text-align:left; }
     .wire-graphic { flex:2; font-family:'Courier New', monospace; text-align:center; }
     .cut-button, #play-again-btn { margin-top:1em; }
+      #code-panel { position:fixed; bottom:8px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); border:1px solid #0f0; border-radius:6px; padding:6px 10px; font-size:1rem; z-index:2; }
+    #code-digits { letter-spacing:.3em; font-weight:bold; }
   </style>
 </head>
 <body>
@@ -38,6 +40,9 @@
       <button id="instructions-btn">Instructions</button>
       <button id="start-btn">Start!</button>
     </div>
+
+    <!-- CODE PANEL -->
+    <div id="code-panel" class="hidden">Vault Code: <span id="code-digits">_ _ _ _</span></div>
 
     <!-- WIRES ONLY -->
     <div id="wire-module" class="screen hidden">
@@ -63,6 +68,22 @@
       ctx.fillStyle = '#0f0'; ctx.font = '16px Courier New';
       ypos.forEach((y,i) => { ctx.fillText(Math.random()>0.5?'1':'0', i*20, y); ypos[i] = y > canvas.height ? 0 : y + 20; });
     },50);
+
+    // ===== Vault code state =====
+    const codeDigits = [null, null, null, null];
+    function renderCodePanel(){
+      const panel = document.getElementById('code-panel');
+      const s = codeDigits.map(d => d===null ? '_' : d).join(' ');
+      document.getElementById('code-digits').textContent = s;
+      panel.classList.remove('hidden');
+    }
+
+    function setCodeDigit(pos, val){
+      if(codeDigits[pos]===null){
+        codeDigits[pos] = val;
+        renderCodePanel();
+      }
+    }
 
     // ===== Wires logic =====
     let wires = [], serialNumber = '', lastDigitOdd = false;
@@ -103,7 +124,8 @@
       const gr = document.getElementById(`wire-graphic-${idx}`);
       if(gr){ const t = gr.textContent, m = Math.floor(t.length/2); gr.textContent = t.slice(0,m)+'  '+t.slice(m+2); }
       if(idx===correct){
-        document.getElementById('feedback').textContent='✅ Disarmed. Nice work!';
+        document.getElementById('feedback').textContent='✅ Disarmed. Nice work! (Digit revealed: 8)';
+        setCodeDigit(0, 8);
         document.getElementById('play-again-btn').classList.remove('hidden');
         document.getElementById('back-btn').classList.remove('hidden');
       } else {
@@ -120,6 +142,7 @@
       bg.play().catch(e=>console.warn('Audio play failed:',e));
       document.getElementById('start-screen').classList.add('hidden');
       document.getElementById('wire-module').classList.remove('hidden');
+      renderCodePanel();
       initWires();
     });
     document.getElementById('play-again-btn').addEventListener('click', initWires);
