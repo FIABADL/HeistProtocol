@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Heist Puzzle Box</title>
+  <title>Heist Puzzle Box — Wires • Laser • Transfer</title>
   <style>
     body { margin:0; font-family:'Courier New', monospace; background:#000; color:#0f0; overflow:hidden; }
     #matrix { position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:-2; }
@@ -11,82 +11,103 @@
     #app { position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; text-align:center; padding:1em; }
     @keyframes shake { 0%,100%{transform:translate(0);}25%{transform:translate(2px);}50%{transform:translate(-2px);}75%{transform:translate(2px);} }
     .shake { animation:shake .5s; }
-    .screen { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.9); padding:1.5em; border-radius:8px; width:90%; max-width:400px; }
+    .screen { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.9); padding:1.5em; border-radius:8px; width:90%; max-width:420px; }
     .screen h1, .screen h2 { margin-bottom:0.5em; }
     .screen p { margin-bottom:1em; line-height:1.3; }
     .screen button { background:transparent; color:#0f0; border:1px solid #0f0; padding:0.5em 1em; cursor:pointer; margin:0.3em; user-select:none; -webkit-user-select:none; }
+    #code-panel { position:fixed; bottom:8px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); border:1px solid #0f0; border-radius:6px; padding:6px 10px; font-size:1rem; z-index:2; }
+    #code-digits { letter-spacing:.3em; font-weight:bold; }
+
+    /* Wires */
+    #wire-module { background:rgba(0,0,0,0.8); padding:1em; border-radius:8px; width:90%; max-width:420px; }
+    #manual-note { font-size:0.9em; margin-bottom:1em; border:1px dashed #0f0; padding:0.5em; }
+    #serial { font-size:1.1em; margin-bottom:1em; }
     #wire-container { display:flex; flex-direction:column; gap:0.5em; }
     .wire { display:flex; align-items:center; gap:0.5em; }
     .wire .label { flex:1; text-align:left; }
     .wire-graphic { flex:2; font-family:'Courier New', monospace; text-align:center; }
-    #code-panel { position:fixed; bottom:8px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); border:1px solid #0f0; border-radius:6px; padding:6px 10px; font-size:1rem; z-index:2; }
-    #code-digits { letter-spacing:.3em; font-weight:bold; }
-    #laser-grid { display:grid; grid-template-columns:repeat(5,1fr); grid-template-rows:repeat(5,1fr); gap:4px; margin-top:1em; }
-    .laser-cell { width:50px; height:50px; border:1px solid #0f0; cursor:pointer; }
-      #transfer-module { background:rgba(0,0,0,0.9); padding:1.2em; border-radius:8px; width:90%; max-width:420px; }
+
+    /* Laser */
+    #laser-module { background:rgba(0,0,0,0.8); padding:1em; border-radius:8px; width:90%; max-width:420px; }
+    #laser-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:6px; margin-top:8px; }
+    .laser-cell { border:1px solid #0f0; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; cursor:pointer; background:rgba(0,0,0,0.5); }
+    .laser-cell:hover { background:rgba(0,255,0,0.08); }
+
+    /* Transfer Bars */
+    #transfer-module { background:rgba(0,0,0,0.9); padding:1.2em; border-radius:8px; width:90%; max-width:420px; }
     #transfer-title { color:#0f0; font-weight:bold; margin-bottom:.25em; }
-    #transfer-context { color:#0f0; font-size:.95em; margin-bottom:.75em; }
-    #transfer-target { margin:.25em 0 .75em; color:#0f0; }
-    #transfer-bar { width:100%; height:14px; border:1px solid #0f0; border-radius:6px; position:relative; overflow:hidden; background:rgba(0,255,0,0.05); }
-    #transfer-bar-fill { position:absolute; left:0; top:0; height:100%; width:0%; background:#0f0; }
+    #transfer-bar { width:100%; height:16px; border:1px solid #0f0; border-radius:6px; position:relative; overflow:hidden; background:rgba(0,255,0,0.05); margin:10px 0; }
+    #transfer-bar-fill { position:absolute; left:0; top:0; height:100%; width:0%; background:#0f0; transition:width 0.05s linear; }
     #transfer-percent { margin-top:.4em; }
     #trace { color:#f33; font-weight:bold; margin:.6em 0; display:none; }
-    #transfer-controls button { margin-top:10px; }
   </style>
 </head>
 <body>
   <audio id="bg-music" src="./Radional.mp3" loop preload="auto"></audio>
   <canvas id="matrix"></canvas>
+
   <div id="app">
+    <!-- START -->
     <div id="start-screen" class="screen">
-      <h1>Heist Protocol: A Puzzle Box</h1>
-      <p><strong>Backstory:</strong> You're hacking a bank safe.</p>
+      <h1>Heist Protocol</h1>
+      <p><strong>Backstory:</strong> You're hacking a bank safe. Communicate with your partner at the safe.</p>
+      <p style="font-size:0.9em;">We recommend watching the instructions before starting.</p>
+      <button id="instructions-btn">Instructions</button>
       <button id="start-btn">Start!</button>
     </div>
 
+    <!-- CODE PANEL -->
+    <div id="code-panel" class="hidden">Vault Code: <span id="code-digits">_ _ _ _</span></div>
+
+    <!-- WIRES MODULE -->
     <div id="wire-module" class="screen hidden">
       <h2>Module: Wire Control</h2>
-      <p id="manual-note">Refer to printed wire instructions.</p>
+      <p id="manual-note">Partner sees the physical safe. You see the wires. Communicate to decide which wire to cut.</p>
       <div id="serial"></div>
       <div id="wire-container"></div>
       <p id="feedback"></p>
-      <button id="next-btn" class="hidden">Next Module</button>
+      <button id="play-again-btn" class="hidden">New Wires</button>
+      <button id="wire-next-module" class="hidden">Next Module</button>
+      <button id="back-btn" class="hidden">Back to Start</button>
     </div>
 
+    <!-- LASER MODULE -->
     <div id="laser-module" class="screen hidden">
       <h2>Module: Laser System</h2>
-      <img src="./LaserDevice.png" alt="Laser Grid" style="width:100%;max-width:300px;border:1px solid #0f0;"/>
+      <img src="LaserDevice.png" alt="Laser grid" style="max-width:100%;border:1px solid #0f0; margin-bottom:8px;"/>
       <div id="laser-grid"></div>
       <p id="laser-feedback"></p>
-      <button id="laser-next-btn" class="hidden">Next Module</button>
+      <button id="laser-next-module" class="hidden">Next Module</button>
+      <button id="laser-back-btn" class="hidden">Back to Start</button>
     </div>
 
+    <!-- TRANSFER BARS MODULE -->
     <div id="transfer-module" class="screen hidden">
       <h2>Module: Transfer Bars</h2>
       <div id="transfer-title">Transferring Encrypted Files…</div>
-      <div id="transfer-context">Follow the safe clue order and abort at the right moment.</div>
-      <div id="transfer-target"></div>
       <div id="transfer-bar"><div id="transfer-bar-fill"></div></div>
       <div id="transfer-percent">0%</div>
       <div id="trace">TRACE INITIATED!</div>
-      <div id="transfer-controls"><button id="abort-btn">ABORT TRANSFER</button></div>
+      <div><button id="abort-btn">ABORT TRANSFER</button></div>
       <p id="transfer-feedback"></p>
       <button id="transfer-back-btn" class="hidden">Back to Start</button>
     </div>
-
-    <div id="code-panel" class="hidden">Vault Code: <span id="code-digits">_ _ _ _</span></div>
   </div>
 
   <script>
+    // ===== Matrix rain =====
     const canvas = document.getElementById('matrix'), ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-    const cols = Math.floor(canvas.width/20)+1, ypos = Array(cols).fill(0);
+    function sizeCanvas(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    sizeCanvas(); window.addEventListener('resize', sizeCanvas);
+    let cols = Math.floor(canvas.width/20)+1, ypos = Array(cols).fill(0);
     setInterval(() => {
+      if (cols !== Math.floor(canvas.width/20)+1) { cols = Math.floor(canvas.width/20)+1; ypos = Array(cols).fill(0); }
       ctx.fillStyle = 'rgba(0,0,0,0.05)'; ctx.fillRect(0,0,canvas.width,canvas.height);
       ctx.fillStyle = '#0f0'; ctx.font = '16px Courier New';
       ypos.forEach((y,i) => { ctx.fillText(Math.random()>0.5?'1':'0', i*20, y); ypos[i] = y > canvas.height ? 0 : y + 20; });
     },50);
 
+    // ===== Vault code state =====
     const codeDigits = [null, null, null, null];
     function renderCodePanel(){
       const panel = document.getElementById('code-panel');
@@ -94,21 +115,19 @@
       document.getElementById('code-digits').textContent = s;
       panel.classList.remove('hidden');
     }
-
     function setCodeDigit(pos, val){
-      if(codeDigits[pos]===null){
-        codeDigits[pos] = val;
-        renderCodePanel();
-      }
+      if(codeDigits[pos]===null){ codeDigits[pos] = val; renderCodePanel(); }
     }
 
+    // ===== Wires logic =====
     let wires = [], serialNumber = '', lastDigitOdd = false;
     function randomizeWires() {
       serialNumber = String(Math.floor(Math.random()*1e6)).padStart(6,'0');
       lastDigitOdd = parseInt(serialNumber.slice(-1)) % 2 === 1;
       document.getElementById('serial').textContent = `SN: ${serialNumber}`;
       const colors = ['red','white','blue','yellow','black'];
-      wires = Array.from({length:3+Math.floor(Math.random()*4)}, () => colors[Math.floor(Math.random()*colors.length)]);
+      const len = 3 + Math.floor(Math.random()*4); // 3..6 wires
+      wires = Array.from({length:len}, () => colors[Math.floor(Math.random()*colors.length)]);
     }
     function getCorrectWire() {
       const cnt = c => wires.filter(w=>w===c).length, l = wires.length;
@@ -118,7 +137,6 @@
       if(l===6){ if(cnt('yellow')===0&&lastDigitOdd) return 2; if(cnt('yellow')===1&&cnt('white')>1) return 3; if(cnt('red')===0) return 5; return 3; }
       return 0;
     }
-
     function initWires() {
       randomizeWires();
       document.getElementById('feedback').textContent = '';
@@ -126,71 +144,82 @@
       wires.forEach((col,i) => {
         const dashes = '─'.repeat(20);
         const div = document.createElement('div'); div.className = 'wire';
-        div.innerHTML = `<span class="label">Wire ${i+1} (${col})</span><span id="wire-graphic-${i}" class="wire-graphic" style="color:${col};">${dashes}</span><button class="cut-button" data-i="${i}">Cut</button>`;
+        div.innerHTML = `<span class="label">Wire ${i+1} (${col})</span>`+
+                        `<span id="wire-graphic-${i}" class="wire-graphic" style="color:${col};">${dashes}</span>`+
+                        `<button class="cut-button" data-i="${i}">Cut</button>`;
         ctr.appendChild(div);
       });
       document.querySelectorAll('.cut-button').forEach(b=>b.addEventListener('click', handleCut));
+      document.getElementById('play-again-btn').classList.add('hidden');
+      document.getElementById('back-btn').classList.add('hidden');
+      document.getElementById('wire-next-module').classList.add('hidden');
     }
-
     function handleCut(e) {
       const idx = +e.target.dataset.i, correct = getCorrectWire();
       const gr = document.getElementById(`wire-graphic-${idx}`);
       if(gr){ const t = gr.textContent, m = Math.floor(t.length/2); gr.textContent = t.slice(0,m)+'  '+t.slice(m+2); }
-      if(idx===correct){ document.getElementById('feedback').textContent='✅ Disarmed. Digit revealed: 8'; setCodeDigit(0,8); document.getElementById('next-btn').classList.remove('hidden'); }
-      else { document.getElementById('feedback').textContent='❌ Wrong wire.'; document.getElementById('app').classList.add('shake'); setTimeout(()=>document.getElementById('app').classList.remove('shake'),500); }
-    }
-
-    function initLaser(){
-      const grid=document.getElementById('laser-grid'); grid.innerHTML='';
-      for(let r=0;r<5;r++){
-        for(let c=0;c<5;c++){
-          const cell=document.createElement('div');
-          cell.className='laser-cell';
-          cell.dataset.row=r; cell.dataset.col=c;
-          cell.addEventListener('click',()=>{
-            if(r===4&&c===2){ document.getElementById('laser-feedback').textContent='✅ Correct! Digit revealed: 0'; setCodeDigit(1,0); document.getElementById('laser-next-btn').classList.remove('hidden'); }
-            else { document.getElementById('laser-feedback').textContent='❌ Wrong square!'; document.getElementById('app').classList.add('shake'); setTimeout(()=>document.getElementById('app').classList.remove('shake'),500); }
-          });
-          grid.appendChild(cell);
-        }
+      if(idx===correct){
+        document.getElementById('feedback').textContent='✅ Disarmed. (Digit revealed: 8)';
+        setCodeDigit(0, 8);
+        document.getElementById('play-again-btn').classList.remove('hidden');
+        document.getElementById('wire-next-module').classList.remove('hidden');
+        document.getElementById('back-btn').classList.remove('hidden');
+      } else {
+        document.getElementById('feedback').textContent='❌ Wrong. Try another wire.';
+        document.getElementById('app').classList.add('shake');
+        setTimeout(()=>document.getElementById('app').classList.remove('shake'),500);
       }
     }
 
-    document.getElementById('start-btn').addEventListener('click',()=>{
-      document.getElementById('start-screen').classList.add('hidden');
-      document.getElementById('wire-module').classList.remove('hidden');
-      renderCodePanel(); initWires();
-      const bg = document.getElementById('bg-music'); bg.play().catch(e=>console.warn('Audio play failed:',e));
-    });
+    // ===== Laser module =====
+    const LASER_ROWS=5, LASER_COLS=5, LASER_CORRECT={row:4,col:2}; // bottom middle (0-based)
+    const LASER_DIGIT = 0; // second digit
+    function initLaser(){
+      const grid=document.getElementById('laser-grid'); grid.innerHTML='';
+      document.getElementById('laser-feedback').textContent='';
+      for(let r=0;r<LASER_ROWS;r++){
+        for(let c=0;c<LASER_COLS;c++){
+          const cell=document.createElement('div');
+          cell.className='laser-cell'; cell.dataset.r=r; cell.dataset.c=c;
+          cell.addEventListener('click', onLaserClick);
+          grid.appendChild(cell);
+        }
+      }
+      document.getElementById('laser-next-module').classList.add('hidden');
+      document.getElementById('laser-back-btn').classList.add('hidden');
+    }
+    function onLaserClick(e){
+      const r=+e.currentTarget.dataset.r, c=+e.currentTarget.dataset.c;
+      if(r===LASER_CORRECT.row && c===LASER_CORRECT.col){
+        document.getElementById('laser-feedback').textContent='✅ Laser grid bypassed. (Digit revealed: 0)';
+        setCodeDigit(1, 0);
+        document.getElementById('laser-next-module').classList.remove('hidden');
+        document.getElementById('laser-back-btn').classList.remove('hidden');
+      } else {
+        document.getElementById('laser-feedback').textContent='❌ Incorrect tile. Try again.';
+        document.getElementById('app').classList.add('shake');
+        setTimeout(()=>document.getElementById('app').classList.remove('shake'),400);
+      }
+    }
 
-    document.getElementById('next-btn').addEventListener('click',()=>{
-      document.getElementById('wire-module').classList.add('hidden');
-      document.getElementById('laser-module').classList.remove('hidden');
-      initLaser();
-    });
-
-    // === Transfer Bars logic ===
+    // ===== Transfer Bars (Top, Right, Back, Left) =====
     const ORDER=['Top','Right','Back','Left'];
     const TARGETS=[89,47,95,16];
     const TOL=3; // ±3%
-    let tInterval=null, tPercent=0, tIdx=0, tSpeed=0.6; // ~5s per cycle
+    let tInterval=null, tPercent=0, tIdx=0, tSpeed=0.35; // slightly slower
 
     function initTransfer(){
       clearInterval(tInterval); tPercent=0; tIdx=0; document.getElementById('trace').style.display='none';
-      updateTransferUI();
-      tInterval=setInterval(tTick, 30);
       document.getElementById('transfer-feedback').textContent='';
       document.getElementById('transfer-back-btn').classList.add('hidden');
       document.getElementById('transfer-percent').textContent='0%';
       document.getElementById('transfer-bar-fill').style.width='0%';
+      tInterval=setInterval(tTick, 40);
     }
     function tTick(){
       tPercent += tSpeed; if(tPercent>100) tPercent=0;
       document.getElementById('transfer-bar-fill').style.width = tPercent+'%';
       document.getElementById('transfer-percent').textContent = Math.floor(tPercent)+'%';
-    }
-    function updateTransferUI(){
-      document.getElementById('transfer-target').textContent = `Target ${ORDER[tIdx]}: abort near ${TARGETS[tIdx]}% (±${TOL}%)`;
     }
     function abortTransfer(){
       const target = TARGETS[tIdx];
@@ -199,26 +228,53 @@
         tIdx++;
         if(tIdx>=ORDER.length){
           clearInterval(tInterval);
-          document.getElementById('transfer-feedback').textContent='✅ Sequence complete.';
+          document.getElementById('transfer-feedback').textContent='✅ Sequence complete. (Digit revealed: 2)';
+          setCodeDigit(2, 2);
           document.getElementById('transfer-back-btn').classList.remove('hidden');
         } else {
-          tPercent=0; updateTransferUI();
-          document.getElementById('transfer-feedback').textContent='✔ Next: '+ORDER[tIdx];
+          tPercent=0;
         }
       } else {
         document.getElementById('trace').style.display='block';
-        document.getElementById('transfer-feedback').textContent='❌ TRACE INITIATED! Sequence reset to Top.';
+        document.getElementById('transfer-feedback').textContent='';
         document.getElementById('app').classList.add('shake');
         setTimeout(()=>{ document.getElementById('app').classList.remove('shake'); document.getElementById('trace').style.display='none'; }, 700);
-        tIdx=0; tPercent=0; updateTransferUI();
+        tIdx=0; tPercent=0;
       }
     }
 
-    document.getElementById('laser-next-btn').addEventListener('click',()=>{
+    // ===== Navigation =====
+    document.getElementById('instructions-btn').addEventListener('click',()=>window.open('https://youtu.be/-1dn5n1JsX4?si=h6lz7WZFHlDEZLo-','_blank'));
+    document.getElementById('start-btn').addEventListener('click',()=>{
+      const bg = document.getElementById('bg-music');
+      bg.play().catch(e=>console.warn('Audio play failed:',e));
+      document.getElementById('start-screen').classList.add('hidden');
+      document.getElementById('wire-module').classList.remove('hidden');
+      renderCodePanel();
+      initWires();
+    });
+
+    document.getElementById('play-again-btn').addEventListener('click', initWires);
+    document.getElementById('wire-next-module').addEventListener('click',()=>{
+      document.getElementById('wire-module').classList.add('hidden');
+      document.getElementById('laser-module').classList.remove('hidden');
+      initLaser();
+    });
+    document.getElementById('back-btn').addEventListener('click',()=>{
+      document.getElementById('wire-module').classList.add('hidden');
+      document.getElementById('start-screen').classList.remove('hidden');
+    });
+
+    document.getElementById('laser-next-module').addEventListener('click',()=>{
       document.getElementById('laser-module').classList.add('hidden');
       document.getElementById('transfer-module').classList.remove('hidden');
       initTransfer();
     });
+    document.getElementById('laser-back-btn').addEventListener('click',()=>{
+      document.getElementById('laser-module').classList.add('hidden');
+      document.getElementById('start-screen').classList.remove('hidden');
+    });
+
     document.getElementById('abort-btn').addEventListener('click', abortTransfer);
     document.getElementById('transfer-back-btn').addEventListener('click',()=>{
       document.getElementById('transfer-module').classList.add('hidden');
