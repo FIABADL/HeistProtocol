@@ -23,6 +23,15 @@
     #code-digits { letter-spacing:.3em; font-weight:bold; }
     #laser-grid { display:grid; grid-template-columns:repeat(5,1fr); grid-template-rows:repeat(5,1fr); gap:4px; margin-top:1em; }
     .laser-cell { width:50px; height:50px; border:1px solid #0f0; cursor:pointer; }
+      #transfer-module { background:rgba(0,0,0,0.9); padding:1.2em; border-radius:8px; width:90%; max-width:420px; }
+    #transfer-title { color:#0f0; font-weight:bold; margin-bottom:.25em; }
+    #transfer-context { color:#0f0; font-size:.95em; margin-bottom:.75em; }
+    #transfer-target { margin:.25em 0 .75em; color:#0f0; }
+    #transfer-bar { width:100%; height:14px; border:1px solid #0f0; border-radius:6px; position:relative; overflow:hidden; background:rgba(0,255,0,0.05); }
+    #transfer-bar-fill { position:absolute; left:0; top:0; height:100%; width:0%; background:#0f0; }
+    #transfer-percent { margin-top:.4em; }
+    #trace { color:#f33; font-weight:bold; margin:.6em 0; display:none; }
+    #transfer-controls button { margin-top:10px; }
   </style>
 </head>
 <body>
@@ -50,6 +59,19 @@
       <div id="laser-grid"></div>
       <p id="laser-feedback"></p>
       <button id="laser-next-btn" class="hidden">Next Module</button>
+    </div>
+
+    <div id="transfer-module" class="screen hidden">
+      <h2>Module: Transfer Bars</h2>
+      <div id="transfer-title">Transferring Encrypted Files…</div>
+      <div id="transfer-context">Follow the safe clue order and abort at the right moment.</div>
+      <div id="transfer-target"></div>
+      <div id="transfer-bar"><div id="transfer-bar-fill"></div></div>
+      <div id="transfer-percent">0%</div>
+      <div id="trace">TRACE INITIATED!</div>
+      <div id="transfer-controls"><button id="abort-btn">ABORT TRANSFER</button></div>
+      <p id="transfer-feedback"></p>
+      <button id="transfer-back-btn" class="hidden">Back to Start</button>
     </div>
 
     <div id="code-panel" class="hidden">Vault Code: <span id="code-digits">_ _ _ _</span></div>
@@ -145,6 +167,62 @@
       document.getElementById('wire-module').classList.add('hidden');
       document.getElementById('laser-module').classList.remove('hidden');
       initLaser();
+    });
+
+    // === Transfer Bars logic ===
+    const ORDER=['Top','Right','Back','Left'];
+    const TARGETS=[89,47,95,16];
+    const TOL=3; // ±3%
+    let tInterval=null, tPercent=0, tIdx=0, tSpeed=0.6; // ~5s per cycle
+
+    function initTransfer(){
+      clearInterval(tInterval); tPercent=0; tIdx=0; document.getElementById('trace').style.display='none';
+      updateTransferUI();
+      tInterval=setInterval(tTick, 30);
+      document.getElementById('transfer-feedback').textContent='';
+      document.getElementById('transfer-back-btn').classList.add('hidden');
+      document.getElementById('transfer-percent').textContent='0%';
+      document.getElementById('transfer-bar-fill').style.width='0%';
+    }
+    function tTick(){
+      tPercent += tSpeed; if(tPercent>100) tPercent=0;
+      document.getElementById('transfer-bar-fill').style.width = tPercent+'%';
+      document.getElementById('transfer-percent').textContent = Math.floor(tPercent)+'%';
+    }
+    function updateTransferUI(){
+      document.getElementById('transfer-target').textContent = `Target ${ORDER[tIdx]}: abort near ${TARGETS[tIdx]}% (±${TOL}%)`;
+    }
+    function abortTransfer(){
+      const target = TARGETS[tIdx];
+      const ok = Math.abs(tPercent - target) <= TOL;
+      if(ok){
+        tIdx++;
+        if(tIdx>=ORDER.length){
+          clearInterval(tInterval);
+          document.getElementById('transfer-feedback').textContent='✅ Sequence complete.';
+          document.getElementById('transfer-back-btn').classList.remove('hidden');
+        } else {
+          tPercent=0; updateTransferUI();
+          document.getElementById('transfer-feedback').textContent='✔ Next: '+ORDER[tIdx];
+        }
+      } else {
+        document.getElementById('trace').style.display='block';
+        document.getElementById('transfer-feedback').textContent='❌ TRACE INITIATED! Sequence reset to Top.';
+        document.getElementById('app').classList.add('shake');
+        setTimeout(()=>{ document.getElementById('app').classList.remove('shake'); document.getElementById('trace').style.display='none'; }, 700);
+        tIdx=0; tPercent=0; updateTransferUI();
+      }
+    }
+
+    document.getElementById('laser-next-btn').addEventListener('click',()=>{
+      document.getElementById('laser-module').classList.add('hidden');
+      document.getElementById('transfer-module').classList.remove('hidden');
+      initTransfer();
+    });
+    document.getElementById('abort-btn').addEventListener('click', abortTransfer);
+    document.getElementById('transfer-back-btn').addEventListener('click',()=>{
+      document.getElementById('transfer-module').classList.add('hidden');
+      document.getElementById('start-screen').classList.remove('hidden');
     });
   </script>
 </body>
