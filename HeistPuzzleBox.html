@@ -11,7 +11,8 @@
     #app { position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; text-align:center; padding:1em; }
     @keyframes shake { 0%,100%{transform:translate(0);}25%{transform:translate(2px);}50%{transform:translate(-2px);}75%{transform:translate(2px);} }
     .shake { animation:shake .5s; }
-    .screen { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.9); padding:1.5em; border-radius:8px; width:90%; max-width:420px; }
+    .screen { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.9); padding:1.2em; border-radius:8px; width:90%; max-width:400px; box-sizing:border-box; }
+    @media (max-width:600px){ .screen{ top:45%; transform:translate(-50%,-45%); padding:0.8em; max-width:90%; } }
     .screen h1, .screen h2 { margin-bottom:0.5em; }
     .screen p { margin-bottom:1em; line-height:1.3; }
     .screen button { background:transparent; color:#0f0; border:1px solid #0f0; padding:0.5em 1em; cursor:pointer; margin:0.3em; user-select:none; -webkit-user-select:none; }
@@ -27,11 +28,12 @@
     .wire .label { flex:1; text-align:left; }
     .wire-graphic { flex:2; font-family:'Courier New', monospace; text-align:center; }
 
-    /* Laser */
-    #laser-module { background:rgba(0,0,0,0.8); padding:1em; border-radius:8px; width:90%; max-width:420px; }
-    #laser-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:6px; margin-top:8px; }
+    /* Laser (mobile-optimized) */
+    #laser-module { background:rgba(0,0,0,0.8); padding:0.8em; border-radius:8px; width:90%; max-width:360px; }
+    #laser-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:5px; margin-top:6px; }
     .laser-cell { border:1px solid #0f0; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; cursor:pointer; background:rgba(0,0,0,0.5); }
     .laser-cell:hover { background:rgba(0,255,0,0.08); }
+    img#laser-img { width:100%; border:1px solid #0f0; margin-bottom:6px; max-height:150px; object-fit:contain; }
 
     /* Transfer Bars */
     #transfer-module { background:rgba(0,0,0,0.9); padding:1.2em; border-radius:8px; width:90%; max-width:420px; }
@@ -74,7 +76,7 @@
     <!-- LASER MODULE -->
     <div id="laser-module" class="screen hidden">
       <h2>Module: Laser System</h2>
-      <img src="LaserDevice.png" alt="Laser grid" style="max-width:100%;border:1px solid #0f0; margin-bottom:8px;"/>
+      <img id="laser-img" src="LaserDevice.png" alt="Laser grid"/>
       <div id="laser-grid"></div>
       <p id="laser-feedback"></p>
       <button id="laser-next-module" class="hidden">Next Module</button>
@@ -171,7 +173,7 @@
       }
     }
 
-    // ===== Laser module =====
+    // ===== Laser module (mobile-optimized) =====
     const LASER_ROWS=5, LASER_COLS=5, LASER_CORRECT={row:4,col:2}; // bottom middle (0-based)
     const LASER_DIGIT = 0; // second digit
     function initLaser(){
