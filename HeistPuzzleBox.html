@@ -68,7 +68,7 @@
 
     <!-- INTRO VIDEO (auto-plays after Start) -->
     <div id="intro-video" class="screen hidden">
-      <video id="heist-video" src="HeistProtocol_Intro.mp4" preload="auto"></video>
+      <video id="heist-video" src="HeistProtocol_Intro.mp4" preload="auto" muted playsinline></video>
     </div>
 
     <!-- CODE PANEL (pinned top) -->
@@ -150,7 +150,7 @@
         el.style.display = 'none';
         el.setAttribute('aria-hidden','true');
         if(typeof next === 'function') next();
-      });
+      }, duration);
     }
 
     // ===== Vault code state =====
@@ -165,13 +165,24 @@
 
     // ===== START: play intro video then begin modules =====
     document.getElementById('start-btn').addEventListener('click',()=>{
-      const bg = document.getElementById('bg-music'); bg.play().catch(()=>{});
+      const bg = document.getElementById('bg-music');
+      // Delay music until after intro to avoid autoplay conflicts
+      try { bg.pause(); bg.currentTime = 0; } catch(e) {}
       document.getElementById('start-screen').classList.add('hidden');
       const intro = document.getElementById('intro-video');
       const vid = document.getElementById('heist-video');
-      intro.classList.remove('hidden'); vid.currentTime = 0; vid.play().catch(()=>{});
+      intro.classList.remove('hidden');
+      vid.currentTime = 0;
+      // Try to play; ensure muted+inline if blocked; last resort show controls
+      vid.play().catch(()=>{
+        vid.muted = true;
+        vid.playsInline = true;
+        vid.play().catch(()=>{ vid.setAttribute('controls','controls'); });
+      });
       vid.onended = () => {
         intro.classList.add('hidden');
+        // Start background music after intro
+        bg.play().catch(()=>{});
         renderCodePanel();
         document.getElementById('wire-module').classList.remove('hidden');
         initWires();
