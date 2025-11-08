@@ -109,6 +109,18 @@
       <div><button id="abort-btn">ABORT TRANSFER</button></div>
       <p id="transfer-feedback"></p>
     </div>
+
+    <!-- CAMERA MODULE -->
+    <div id="camera-module" class="screen hidden">
+      <h2>Module: Camera Review</h2>
+      <video id="cam-video" src="HeistProtocol_Camera.mp4" preload="auto" controls></video>
+      <p id="cam-instructions" style="margin-top:.5em;">Watch the footage, then enter the 4‑digit code you observed.</p>
+      <div style="display:flex; gap:.5em; justify-content:center; margin-top:.25em;">
+        <input id="cam-code" inputmode="numeric" pattern="\d{4}" maxlength="4" placeholder="----" style="width:7em; text-align:center; background:#000; color:#0f0; border:1px solid #0f0; border-radius:6px; padding:.4em .5em;"/>
+        <button id="cam-submit">Submit</button>
+      </div>
+      <p id="cam-feedback"></p>
+    </div>
   </div>
 
   <script>
@@ -137,7 +149,7 @@
         el.style.display = 'none';
         el.setAttribute('aria-hidden','true');
         if(typeof next === 'function') next();
-      }, duration);
+      }); // duration arg removed to avoid stray comma parse error
     }
 
     // ===== Vault code state =====
@@ -294,6 +306,72 @@
 
     // ===== Events =====
     document.getElementById('abort-btn').addEventListener('click', abortTransfer);
-  </script>
+  // === Add/override for camera module and adjusted transfer flow ===
+const ORDER=['Top','Right','Back','Left'];
+const TARGETS=[89,47,95,16];
+const TOL=3;
+let tInterval=null, tPercent=0, tIdx=0, tSpeed=0.35;
+function initTransfer(){
+  try{ clearInterval(tInterval);}catch(e){}
+  tPercent=0; tIdx=0;
+  const traceEl=document.getElementById('trace'); if(traceEl) traceEl.style.display='none';
+  const tfb=document.getElementById('transfer-feedback'); if(tfb) tfb.textContent='';
+  const tp=document.getElementById('transfer-percent'); if(tp) tp.textContent='0%';
+  const fill=document.getElementById('transfer-bar-fill'); if(fill) fill.style.width='0%';
+  tInterval=setInterval(()=>{
+    tPercent += tSpeed; if(tPercent>100) tPercent=0;
+    if(fill) fill.style.width=tPercent+'%';
+    if(tp) tp.textContent=Math.floor(tPercent)+'%';
+  },40);
+}
+function abortTransfer(){
+  const target = TARGETS[tIdx];
+  const ok = Math.abs(tPercent - target) <= TOL;
+  if(ok){
+    tIdx++;
+    if(tIdx>=ORDER.length){
+      clearInterval(tInterval);
+      const tfb=document.getElementById('transfer-feedback'); if(tfb) tfb.textContent='✅ Sequence complete. (Digit revealed: 2)';
+      setCodeDigit(2,2);
+      showTransition('Traffic cams acquired. Pull the final code from the footage.', 2600, ()=>{
+        document.getElementById('transfer-module')?.classList.add('hidden');
+        document.getElementById('camera-module')?.classList.remove('hidden');
+        initCamera();
+      });
+    } else {
+      tPercent=0;
+    }
+  } else {
+    const traceEl=document.getElementById('trace'); if(traceEl) traceEl.style.display='block';
+    const tfb=document.getElementById('transfer-feedback'); if(tfb) tfb.textContent='';
+    document.getElementById('app')?.classList.add('shake');
+    setTimeout(()=>{ document.getElementById('app')?.classList.remove('shake'); if(traceEl) traceEl.style.display='none'; },800);
+    tIdx=0; tPercent=0;
+  }
+}
+
+const REQUIRED_CAM_CODE='1472';
+const FINAL_DIGIT=6; // change this to set the last digit revealed
+function initCamera(){
+  const fb=document.getElementById('cam-feedback'); if(fb) fb.textContent='';
+  const vid=document.getElementById('cam-video'); if(vid){ vid.currentTime=0; vid.play().catch(()=>{}); }
+  const inp=document.getElementById('cam-code'); if(inp) inp.value='';
+}
+(document.getElementById('cam-submit')||{}).addEventListener?.('click', ()=>{
+  const val=(document.getElementById('cam-code')?.value||'').trim();
+  const fb=document.getElementById('cam-feedback');
+  if(!/^\d{4}$/.test(val)){ if(fb) fb.textContent='Enter a 4‑digit code.'; return; }
+  if(val===REQUIRED_CAM_CODE){
+    setCodeDigit(3, FINAL_DIGIT);
+    if(fb) fb.textContent=`✅ Correct. Final digit unlocked: ${FINAL_DIGIT}`;
+    if(codeDigits?.every?.(d=>d!==null)){ showTransition(`Vault Code Complete: ${codeDigits.join(' ')}`, 2800); }
+  } else {
+    if(fb) fb.textContent='❌ Incorrect — check the footage again.';
+    document.getElementById('app')?.classList.add('shake');
+    setTimeout(()=>document.getElementById('app')?.classList.remove('shake'), 400);
+  }
+});
+// === end camera additions ===
+</script>
 </body>
 </html>
