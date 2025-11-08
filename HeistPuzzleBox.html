@@ -22,7 +22,7 @@
     #code-digits { letter-spacing:.3em; font-weight:bold; }
 
     /* Transition overlay */
-    #transition { position:fixed; inset:0; background:rgba(0,0,0,0.92); display:flex; align-items:center; justify-content:center; z-index:4; text-align:center; padding:1rem; }
+    #transition { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.92); display:flex; align-items:center; justify-content:center; z-index:4; text-align:center; padding:1rem; }
     #transition .box { border:1px solid #0f0; border-radius:8px; padding:1rem 1.25rem; max-width:520px; }
 
     /* Wires */
@@ -75,7 +75,9 @@
     <!-- Transition overlay screen -->
     <div id="transition" class="hidden">
       <div class="box">
-        <div id="transition-text">…</div>
+        <div id="transition-text"></div>
+      </div>
+    </div>
       </div>
     </div>
 
@@ -128,6 +130,8 @@
     // ===== Transition overlay helper =====
     const transitionEl = document.getElementById('transition');
     const transitionText = document.getElementById('transition-text');
+    // ensure hidden at load (some browsers briefly render otherwise)
+    transitionEl.classList.add('hidden');
     function showTransition(text, duration=2200, next){
       transitionText.textContent = text;
       transitionEl.classList.remove('hidden');
