@@ -7,7 +7,7 @@
   <style>
     body { margin:0; font-family:'Courier New', monospace; background:#000; color:#0f0; overflow:hidden; }
     #matrix { position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:-2; }
-    .hidden { display:none; }
+    .hidden { display:none !important; }
     #app { position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; text-align:center; padding:1em; }
     @keyframes shake { 0%,100%{transform:translate(0);}25%{transform:translate(2px);}50%{transform:translate(-2px);}75%{transform:translate(2px);} }
     .shake { animation:shake .5s; }
@@ -22,7 +22,8 @@
     #code-digits { letter-spacing:.3em; font-weight:bold; }
 
     /* Transition overlay */
-    #transition { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.92); display:flex; align-items:center; justify-content:center; z-index:4; text-align:center; padding:1rem; }
+    #transition { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.92); display:none; align-items:center; justify-content:center; z-index:4; text-align:center; padding:1rem; }
+    .show-transition { display:flex !important; }
     #transition .box { border:1px solid #0f0; border-radius:8px; padding:1rem 1.25rem; max-width:520px; }
 
     /* Wires */
@@ -73,11 +74,9 @@
     <div id="code-panel" class="hidden">Vault Code: <span id="code-digits">_ _ _ _</span></div>
 
     <!-- Transition overlay screen -->
-    <div id="transition" class="hidden">
+    <div id="transition" class="hidden" aria-hidden="true" style="display:none">
       <div class="box">
         <div id="transition-text"></div>
-      </div>
-    </div>
       </div>
     </div>
 
@@ -88,8 +87,6 @@
       <div id="serial"></div>
       <div id="wire-container"></div>
       <p id="feedback"></p>
-      <!-- Removed New Wires button -->
-      <!-- Hidden next button retained but unused -->
       <button id="wire-next-module" class="hidden">Next Module</button>
     </div>
 
@@ -128,15 +125,17 @@
     },50);
 
     // ===== Transition overlay helper =====
-    const transitionEl = document.getElementById('transition');
-    const transitionText = document.getElementById('transition-text');
-    // ensure hidden at load (some browsers briefly render otherwise)
-    transitionEl.classList.add('hidden');
     function showTransition(text, duration=2200, next){
-      transitionText.textContent = text;
-      transitionEl.classList.remove('hidden');
+      const el = document.getElementById('transition');
+      const txt = document.getElementById('transition-text');
+      txt.textContent = text || '';
+      el.classList.add('show-transition');
+      el.style.display = 'flex';
+      el.setAttribute('aria-hidden','false');
       setTimeout(()=>{
-        transitionEl.classList.add('hidden');
+        el.classList.remove('show-transition');
+        el.style.display = 'none';
+        el.setAttribute('aria-hidden','true');
         if(typeof next === 'function') next();
       }, duration);
     }
