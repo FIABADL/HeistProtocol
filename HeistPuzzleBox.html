@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Heist Puzzle Box — Intro + Wires • Laser • Transfer</title>
+  <title>Heist Puzzle Box — Intro + Wires • Laser • Transfer • Camera</title>
   <style>
     body { margin:0; font-family:'Courier New', monospace; background:#000; color:#0f0; overflow:hidden; }
     #matrix { position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:-2; }
@@ -50,6 +50,7 @@
     #transfer-percent { margin-top:.4em; }
     #trace { color:#f33; font-weight:bold; margin:.6em 0; display:none; }
 
+    /* Camera */
     video { width:100%; border:1px solid #0f0; border-radius:8px; background:#000; }
   </style>
 </head>
@@ -149,7 +150,7 @@
         el.style.display = 'none';
         el.setAttribute('aria-hidden','true');
         if(typeof next === 'function') next();
-      }); // duration arg removed to avoid stray comma parse error
+      });
     }
 
     // ===== Vault code state =====
@@ -290,8 +291,12 @@
           clearInterval(tInterval);
           document.getElementById('transfer-feedback').textContent='✅ Sequence complete. (Digit revealed: 2)';
           setCodeDigit(2, 2);
-          // Final transition before next (placeholder for future camera module)
-          showTransition('Override fragment stored. One more to go — Chris is nearing his stop.', 2400);
+          // Transition then move to Camera module
+          showTransition('Traffic cams acquired. Pull the final code from the footage.', 2600, ()=>{
+            document.getElementById('transfer-module').classList.add('hidden');
+            document.getElementById('camera-module').classList.remove('hidden');
+            initCamera();
+          });
         } else {
           tPercent=0;
         }
@@ -304,74 +309,39 @@
       }
     }
 
+    // ===== Camera module =====
+    const REQUIRED_CAM_CODE = '1472';
+    const FINAL_DIGIT = 6; // final vault digit on success
+
+    function initCamera(){
+      document.getElementById('cam-feedback').textContent='';
+      const vid = document.getElementById('cam-video');
+      vid.currentTime = 0; // start from the top
+      vid.play().catch(()=>{}); // autoplay may be blocked; controls shown
+      document.getElementById('cam-code').value='';
+    }
+
+    document.getElementById('cam-submit').addEventListener('click', ()=>{
+      const input = (document.getElementById('cam-code').value||'').trim();
+      if(!/^\d{4}$/.test(input)){
+        document.getElementById('cam-feedback').textContent='Enter a 4‑digit code.';
+        return;
+      }
+      if(input === REQUIRED_CAM_CODE){
+        setCodeDigit(3, FINAL_DIGIT);
+        document.getElementById('cam-feedback').textContent=`✅ Correct. Final digit unlocked: ${FINAL_DIGIT}`;
+        if(codeDigits.every(d=>d!==null)){
+          showTransition(`Vault Code Complete: ${codeDigits.join(' ')}`, 2800);
+        }
+      } else {
+        document.getElementById('cam-feedback').textContent='❌ Incorrect — check the footage again.';
+        document.getElementById('app').classList.add('shake');
+        setTimeout(()=>document.getElementById('app').classList.remove('shake'), 400);
+      }
+    });
+
     // ===== Events =====
     document.getElementById('abort-btn').addEventListener('click', abortTransfer);
-  // === Add/override for camera module and adjusted transfer flow ===
-const ORDER=['Top','Right','Back','Left'];
-const TARGETS=[89,47,95,16];
-const TOL=3;
-let tInterval=null, tPercent=0, tIdx=0, tSpeed=0.35;
-function initTransfer(){
-  try{ clearInterval(tInterval);}catch(e){}
-  tPercent=0; tIdx=0;
-  const traceEl=document.getElementById('trace'); if(traceEl) traceEl.style.display='none';
-  const tfb=document.getElementById('transfer-feedback'); if(tfb) tfb.textContent='';
-  const tp=document.getElementById('transfer-percent'); if(tp) tp.textContent='0%';
-  const fill=document.getElementById('transfer-bar-fill'); if(fill) fill.style.width='0%';
-  tInterval=setInterval(()=>{
-    tPercent += tSpeed; if(tPercent>100) tPercent=0;
-    if(fill) fill.style.width=tPercent+'%';
-    if(tp) tp.textContent=Math.floor(tPercent)+'%';
-  },40);
-}
-function abortTransfer(){
-  const target = TARGETS[tIdx];
-  const ok = Math.abs(tPercent - target) <= TOL;
-  if(ok){
-    tIdx++;
-    if(tIdx>=ORDER.length){
-      clearInterval(tInterval);
-      const tfb=document.getElementById('transfer-feedback'); if(tfb) tfb.textContent='✅ Sequence complete. (Digit revealed: 2)';
-      setCodeDigit(2,2);
-      showTransition('Traffic cams acquired. Pull the final code from the footage.', 2600, ()=>{
-        document.getElementById('transfer-module')?.classList.add('hidden');
-        document.getElementById('camera-module')?.classList.remove('hidden');
-        initCamera();
-      });
-    } else {
-      tPercent=0;
-    }
-  } else {
-    const traceEl=document.getElementById('trace'); if(traceEl) traceEl.style.display='block';
-    const tfb=document.getElementById('transfer-feedback'); if(tfb) tfb.textContent='';
-    document.getElementById('app')?.classList.add('shake');
-    setTimeout(()=>{ document.getElementById('app')?.classList.remove('shake'); if(traceEl) traceEl.style.display='none'; },800);
-    tIdx=0; tPercent=0;
-  }
-}
-
-const REQUIRED_CAM_CODE='1472';
-const FINAL_DIGIT=6; // change this to set the last digit revealed
-function initCamera(){
-  const fb=document.getElementById('cam-feedback'); if(fb) fb.textContent='';
-  const vid=document.getElementById('cam-video'); if(vid){ vid.currentTime=0; vid.play().catch(()=>{}); }
-  const inp=document.getElementById('cam-code'); if(inp) inp.value='';
-}
-(document.getElementById('cam-submit')||{}).addEventListener?.('click', ()=>{
-  const val=(document.getElementById('cam-code')?.value||'').trim();
-  const fb=document.getElementById('cam-feedback');
-  if(!/^\d{4}$/.test(val)){ if(fb) fb.textContent='Enter a 4‑digit code.'; return; }
-  if(val===REQUIRED_CAM_CODE){
-    setCodeDigit(3, FINAL_DIGIT);
-    if(fb) fb.textContent=`✅ Correct. Final digit unlocked: ${FINAL_DIGIT}`;
-    if(codeDigits?.every?.(d=>d!==null)){ showTransition(`Vault Code Complete: ${codeDigits.join(' ')}`, 2800); }
-  } else {
-    if(fb) fb.textContent='❌ Incorrect — check the footage again.';
-    document.getElementById('app')?.classList.add('shake');
-    setTimeout(()=>document.getElementById('app')?.classList.remove('shake'), 400);
-  }
-});
-// === end camera additions ===
-</script>
+  </script>
 </body>
 </html>
