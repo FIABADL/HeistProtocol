@@ -17,12 +17,13 @@
     .screen p { margin-bottom:1em; line-height:1.3; }
     .screen button { background:transparent; color:#0f0; border:1px solid #0f0; padding:0.5em 1em; cursor:pointer; margin:0.3em; user-select:none; -webkit-user-select:none; }
 
-    /* Code panel */
-    #code-panel { position:fixed; bottom:8px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); border:1px solid #0f0; border-radius:6px; padding:6px 10px; font-size:1rem; z-index:2; }
+    /* Code panel pinned top */
+    #code-panel { position:fixed; top:8px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); border:1px solid #0f0; border-radius:6px; padding:6px 10px; font-size:1rem; z-index:3; }
     #code-digits { letter-spacing:.3em; font-weight:bold; }
 
-    /* Toast / micro-prompts */
-    #toast { position:fixed; bottom:60px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.85); border:1px solid #0f0; padding:8px 12px; border-radius:6px; z-index:3; pointer-events:none; min-width:220px; text-align:center; }
+    /* Transition overlay */
+    #transition { position:fixed; inset:0; background:rgba(0,0,0,0.92); display:flex; align-items:center; justify-content:center; z-index:4; text-align:center; padding:1rem; }
+    #transition .box { border:1px solid #0f0; border-radius:8px; padding:1rem 1.25rem; max-width:520px; }
 
     /* Wires */
     #wire-module { background:rgba(0,0,0,0.8); padding:1em; border-radius:8px; width:90%; max-width:420px; }
@@ -68,9 +69,15 @@
       <video id="heist-video" src="HeistProtocol_Intro.mp4" preload="auto"></video>
     </div>
 
-    <!-- CODE PANEL -->
+    <!-- CODE PANEL (pinned top) -->
     <div id="code-panel" class="hidden">Vault Code: <span id="code-digits">_ _ _ _</span></div>
-    <div id="toast" class="hidden"></div>
+
+    <!-- Transition overlay screen -->
+    <div id="transition" class="hidden">
+      <div class="box">
+        <div id="transition-text">…</div>
+      </div>
+    </div>
 
     <!-- WIRES MODULE -->
     <div id="wire-module" class="screen hidden">
@@ -79,7 +86,8 @@
       <div id="serial"></div>
       <div id="wire-container"></div>
       <p id="feedback"></p>
-      <button id="play-again-btn" class="hidden">New Wires</button>
+      <!-- Removed New Wires button -->
+      <!-- Hidden next button retained but unused -->
       <button id="wire-next-module" class="hidden">Next Module</button>
     </div>
 
@@ -117,11 +125,16 @@
       ypos.forEach((y,i) => { ctx.fillText(Math.random()>0.5?'1':'0', i*20, y); ypos[i] = y > canvas.height ? 0 : y + 20; });
     },50);
 
-    // ===== Simple toast helper for micro-prompts =====
-    const toastEl = document.getElementById('toast');
-    function showToast(msg, ms=1200){
-      toastEl.textContent = msg; toastEl.classList.remove('hidden');
-      setTimeout(()=> toastEl.classList.add('hidden'), ms);
+    // ===== Transition overlay helper =====
+    const transitionEl = document.getElementById('transition');
+    const transitionText = document.getElementById('transition-text');
+    function showTransition(text, duration=2200, next){
+      transitionText.textContent = text;
+      transitionEl.classList.remove('hidden');
+      setTimeout(()=>{
+        transitionEl.classList.add('hidden');
+        if(typeof next === 'function') next();
+      }, duration);
     }
 
     // ===== Vault code state =====
@@ -132,26 +145,21 @@
       document.getElementById('code-digits').textContent = s;
       panel.classList.remove('hidden');
     }
-    function setCodeDigit(pos, val){
-      if(codeDigits[pos]===null){ codeDigits[pos] = val; renderCodePanel(); }
-    }
+    function setCodeDigit(pos, val){ if(codeDigits[pos]===null){ codeDigits[pos] = val; renderCodePanel(); } }
 
     // ===== START: play intro video then begin modules =====
     document.getElementById('start-btn').addEventListener('click',()=>{
-      // play bg music best-effort
       const bg = document.getElementById('bg-music'); bg.play().catch(()=>{});
       document.getElementById('start-screen').classList.add('hidden');
       const intro = document.getElementById('intro-video');
       const vid = document.getElementById('heist-video');
-      intro.classList.remove('hidden');
-      vid.currentTime = 0;
-      vid.play().catch(()=>{});
+      intro.classList.remove('hidden'); vid.currentTime = 0; vid.play().catch(()=>{});
       vid.onended = () => {
         intro.classList.add('hidden');
-        document.getElementById('wire-module').classList.remove('hidden');
         renderCodePanel();
+        document.getElementById('wire-module').classList.remove('hidden');
         initWires();
-        showToast("Chris’s token accepted. You’re clear to continue — he’s still driving.");
+        showTransition("Chris’s token accepted. You’re clear to continue — he’s still driving.", 2200);
       };
     });
 
@@ -180,13 +188,12 @@
       wires.forEach((col,i) => {
         const dashes = '─'.repeat(20);
         const div = document.createElement('div'); div.className = 'wire';
-        div.innerHTML = `<span class="label">Wire ${i+1} (${col})</span>`+
-                        `<span id="wire-graphic-${i}" class="wire-graphic" style="color:${col};">${dashes}</span>`+
-                        `<button class="cut-button" data-i="${i}">Cut</button>`;
+        div.innerHTML = `<span class=\"label\">Wire ${i+1} (${col})</span>`+
+                        `<span id=\"wire-graphic-${i}\" class=\"wire-graphic\" style=\"color:${col};\">${dashes}</span>`+
+                        `<button class=\"cut-button\" data-i=\"${i}\">Cut</button>`;
         ctr.appendChild(div);
       });
       document.querySelectorAll('.cut-button').forEach(b=>b.addEventListener('click', handleCut));
-      document.getElementById('play-again-btn').classList.add('hidden');
       document.getElementById('wire-next-module').classList.add('hidden');
     }
     function handleCut(e) {
@@ -196,8 +203,12 @@
       if(idx===correct){
         document.getElementById('feedback').textContent='✅ Disarmed. (Digit revealed: 8)';
         setCodeDigit(0, 8);
-        document.getElementById('play-again-btn').classList.remove('hidden');
-        document.getElementById('wire-next-module').classList.remove('hidden');
+        // Transition then auto-advance to Laser
+        showTransition('File fragment received. Chris says, “Hurry, but don’t break anything.”', 2200, ()=>{
+          document.getElementById('wire-module').classList.add('hidden');
+          document.getElementById('laser-module').classList.remove('hidden');
+          initLaser();
+        });
       } else {
         document.getElementById('feedback').textContent='❌ Wrong. Try another wire.';
         document.getElementById('app').classList.add('shake');
@@ -207,7 +218,6 @@
 
     // ===== Laser module (mobile-optimized) =====
     const LASER_ROWS=5, LASER_COLS=5, LASER_CORRECT={row:4,col:2}; // bottom middle (0-based)
-    const LASER_DIGIT = 0; // digit index already handled elsewhere
     function initLaser(){
       const grid=document.getElementById('laser-grid'); grid.innerHTML='';
       document.getElementById('laser-feedback').textContent='';
@@ -219,15 +229,18 @@
           grid.appendChild(cell);
         }
       }
-      showToast('File fragment received. Chris says, “Hurry, but don’t break anything.”');
-      document.getElementById('laser-next-module').classList.add('hidden');
     }
     function onLaserClick(e){
       const r=+e.currentTarget.dataset.r, c=+e.currentTarget.dataset.c;
       if(r===LASER_CORRECT.row && c===LASER_CORRECT.col){
         document.getElementById('laser-feedback').textContent='✅ Laser grid bypassed. (Digit revealed: 0)';
         setCodeDigit(1, 0);
-        document.getElementById('laser-next-module').classList.remove('hidden');
+        // Transition then auto-advance to Transfer Bars
+        showTransition('No alarms so far. Keep it quiet — he’s almost at the meet.', 2200, ()=>{
+          document.getElementById('laser-module').classList.add('hidden');
+          document.getElementById('transfer-module').classList.remove('hidden');
+          initTransfer();
+        });
       } else {
         document.getElementById('laser-feedback').textContent='❌ Incorrect tile. Try again.';
         document.getElementById('app').classList.add('shake');
@@ -247,7 +260,6 @@
       document.getElementById('transfer-percent').textContent='0%';
       document.getElementById('transfer-bar-fill').style.width='0%';
       tInterval=setInterval(tTick, 40);
-      showToast('No alarms so far. Keep it quiet — he’s almost at the meet.');
     }
     function tTick(){
       tPercent += tSpeed; if(tPercent>100) tPercent=0;
@@ -263,7 +275,8 @@
           clearInterval(tInterval);
           document.getElementById('transfer-feedback').textContent='✅ Sequence complete. (Digit revealed: 2)';
           setCodeDigit(2, 2);
-          showToast('Override fragment stored. One more to go — Chris is nearing his stop.');
+          // Final transition before next (placeholder for future camera module)
+          showTransition('Override fragment stored. One more to go — Chris is nearing his stop.', 2400);
         } else {
           tPercent=0;
         }
@@ -271,25 +284,12 @@
         document.getElementById('trace').style.display='block';
         document.getElementById('transfer-feedback').textContent='';
         document.getElementById('app').classList.add('shake');
-        setTimeout(()=>{ document.getElementById('app').classList.remove('shake'); document.getElementById('trace').style.display='none'; }, 700);
+        setTimeout(()=>{ document.getElementById('app').classList.remove('shake'); document.getElementById('trace').style.display='none'; }, 800);
         tIdx=0; tPercent=0;
       }
     }
 
-    // ===== Navigation between modules =====
-    document.getElementById('play-again-btn').addEventListener('click', initWires);
-    document.getElementById('wire-next-module').addEventListener('click',()=>{
-      document.getElementById('wire-module').classList.add('hidden');
-      document.getElementById('laser-module').classList.remove('hidden');
-      initLaser();
-    });
-
-    document.getElementById('laser-next-module').addEventListener('click',()=>{
-      document.getElementById('laser-module').classList.add('hidden');
-      document.getElementById('transfer-module').classList.remove('hidden');
-      initTransfer();
-    });
-
+    // ===== Events =====
     document.getElementById('abort-btn').addEventListener('click', abortTransfer);
   </script>
 </body>
