@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Heist Puzzle Box — Intro + Wires • Laser • Transfer • Camera</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Heist Protocol — Wires • Laser • Transfer • Camera</title>
   <style>
     body { margin:0; font-family:'Courier New', monospace; background:#000; color:#0f0; overflow:hidden; }
     #matrix { position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:-2; }
@@ -59,26 +59,24 @@
   <canvas id="matrix"></canvas>
 
   <div id="app">
-    <!-- START (no Instructions button) -->
+    <!-- START -->
     <div id="start-screen" class="screen">
       <h1>Heist Protocol</h1>
       <p>Authorization incoming from Chris Moran…</p>
       <button id="start-btn">Start</button>
     </div>
 
-    <!-- INTRO VIDEO (auto-plays after Start) -->
+    <!-- INTRO VIDEO -->
     <div id="intro-video" class="screen hidden">
       <video id="heist-video" src="HeistProtocol_Intro.mp4" preload="auto" playsinline controls></video>
     </div>
 
-    <!-- CODE PANEL (pinned top) -->
+    <!-- CODE PANEL -->
     <div id="code-panel" class="hidden">Vault Code: <span id="code-digits">_ _ _ _</span></div>
 
-    <!-- Transition overlay screen -->
+    <!-- Transition -->
     <div id="transition" class="hidden" aria-hidden="true" style="display:none">
-      <div class="box">
-        <div id="transition-text"></div>
-      </div>
+      <div class="box"><div id="transition-text"></div></div>
     </div>
 
     <!-- WIRES MODULE -->
@@ -126,19 +124,22 @@
 
   <script>
     // ===== Matrix rain =====
-    const canvas = document.getElementById('matrix'), ctx = canvas.getContext('2d');
+    const canvas = document.getElementById('matrix');
+    const ctx = canvas.getContext('2d');
     function sizeCanvas(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
     sizeCanvas(); window.addEventListener('resize', sizeCanvas);
-    let cols = Math.floor(canvas.width/20)+1, ypos = Array(cols).fill(0);
+    let cols = Math.floor(canvas.width/20)+1;
+    let ypos = Array(cols).fill(0);
     setInterval(() => {
-      if (cols !== Math.floor(canvas.width/20)+1) { cols = Math.floor(canvas.width/20)+1; ypos = Array(cols).fill(0); }
+      const wanted = Math.floor(canvas.width/20)+1;
+      if (cols !== wanted) { cols = wanted; ypos = Array(cols).fill(0); }
       ctx.fillStyle = 'rgba(0,0,0,0.05)'; ctx.fillRect(0,0,canvas.width,canvas.height);
       ctx.fillStyle = '#0f0'; ctx.font = '16px Courier New';
       ypos.forEach((y,i) => { ctx.fillText(Math.random()>0.5?'1':'0', i*20, y); ypos[i] = y > canvas.height ? 0 : y + 20; });
     },50);
 
     // ===== Transition overlay helper =====
-    function showTransition(text, duration=2200, next){
+    function showTransition(text, duration = 2200, next){
       const el = document.getElementById('transition');
       const txt = document.getElementById('transition-text');
       txt.textContent = text || '';
@@ -164,20 +165,23 @@
     function setCodeDigit(pos, val){ if(codeDigits[pos]===null){ codeDigits[pos] = val; renderCodePanel(); } }
 
     // ===== START: play intro video then begin modules =====
-    document.getElementById('start-btn').addEventListener('click',()=>{
+    document.getElementById('start-btn').addEventListener('click', function(){
       const bg = document.getElementById('bg-music');
       try { bg.pause(); bg.currentTime = 0; } catch(e) {}
       document.getElementById('start-screen').classList.add('hidden');
+
       const intro = document.getElementById('intro-video');
       const vid   = document.getElementById('heist-video');
       intro.classList.remove('hidden');
       vid.currentTime = 0;
+
       // Try to play WITH audio inline; if blocked, user can tap Play
-      vid.play().catch(()=>{ vid.setAttribute('controls','controls'); });
-      vid.onended = () => {
+      vid.play().catch(function(){ vid.setAttribute('controls','controls'); });
+
+      vid.onended = function(){
         intro.classList.add('hidden');
         // Start background music after intro ends
-        bg.play().catch(()=>{});
+        bg.play().catch(function(){});
         renderCodePanel();
         document.getElementById('wire-module').classList.remove('hidden');
         initWires();
@@ -189,14 +193,15 @@
     let wires = [], serialNumber = '', lastDigitOdd = false;
     function randomizeWires() {
       serialNumber = String(Math.floor(Math.random()*1e6)).padStart(6,'0');
-      lastDigitOdd = parseInt(serialNumber.slice(-1)) % 2 === 1;
-      document.getElementById('serial').textContent = `SN: ${serialNumber}`;
+      lastDigitOdd = parseInt(serialNumber.slice(-1), 10) % 2 === 1;
+      document.getElementById('serial').textContent = 'SN: ' + serialNumber;
       const colors = ['red','white','blue','yellow','black'];
       const len = 3 + Math.floor(Math.random()*4); // 3..6 wires
-      wires = Array.from({length:len}, () => colors[Math.floor(Math.random()*colors.length)]);
+      wires = Array.from({length:len}, function(){ return colors[Math.floor(Math.random()*colors.length)]; });
     }
     function getCorrectWire() {
-      const cnt = c => wires.filter(w=>w===c).length, l = wires.length;
+      const cnt = c => wires.filter(w=>w===c).length;
+      const l = wires.length;
       if(l===3){ if(cnt('red')===0) return 1; if(wires[2]==='white') return 2; if(cnt('blue')>1) return wires.lastIndexOf('blue'); return 2; }
       if(l===4){ if(cnt('red')>1&&lastDigitOdd) return wires.lastIndexOf('red'); if(wires[3]==='yellow'&&cnt('red')===0) return 0; if(cnt('blue')===1) return 0; if(cnt('yellow')>1) return 3; return 1; }
       if(l===5){ if(wires[4]==='black'&&lastDigitOdd) return 3; if(cnt('red')===1&&cnt('yellow')>1) return 0; if(cnt('black')===0) return 1; return 0; }
@@ -207,26 +212,26 @@
       randomizeWires();
       document.getElementById('feedback').textContent = '';
       const ctr = document.getElementById('wire-container'); ctr.innerHTML = '';
-      wires.forEach((col,i) => {
+      wires.forEach(function(col,i){
         const dashes = '─'.repeat(20);
         const div = document.createElement('div'); div.className = 'wire';
-        div.innerHTML = `<span class=\"label\">Wire ${i+1} (${col})</span>`+
-                        `<span id=\"wire-graphic-${i}\" class=\"wire-graphic\" style=\"color:${col};\">${dashes}</span>`+
-                        `<button class=\"cut-button\" data-i=\"${i}\">Cut</button>`;
+        div.innerHTML = '<span class="label">Wire ' + (i+1) + ' (' + col + ')</span>' +
+                        '<span id="wire-graphic-' + i + '" class="wire-graphic" style="color:' + col + ';">' + dashes + '</span>' +
+                        '<button class="cut-button" data-i="' + i + '">Cut</button>';
         ctr.appendChild(div);
       });
-      document.querySelectorAll('.cut-button').forEach(b=>b.addEventListener('click', handleCut));
+      Array.from(document.querySelectorAll('.cut-button')).forEach(function(b){ b.addEventListener('click', handleCut); });
       document.getElementById('wire-next-module').classList.add('hidden');
     }
     function handleCut(e) {
-      const idx = +e.target.dataset.i, correct = getCorrectWire();
-      const gr = document.getElementById(`wire-graphic-${idx}`);
-      if(gr){ const t = gr.textContent, m = Math.floor(t.length/2); gr.textContent = t.slice(0,m)+'  '+t.slice(m+2); }
+      const idx = +e.target.getAttribute('data-i');
+      const correct = getCorrectWire();
+      const gr = document.getElementById('wire-graphic-' + idx);
+      if(gr){ const t = gr.textContent; const m = Math.floor(t.length/2); gr.textContent = t.slice(0,m) + '  ' + t.slice(m+2); }
       if(idx===correct){
         document.getElementById('feedback').textContent='✅ Disarmed. (Digit revealed: 8)';
         setCodeDigit(0, 8);
-        // Transition then auto-advance to Laser
-        showTransition('File fragment received. Chris says, “Hurry, but don’t break anything.”', 2200, ()=>{
+        showTransition('File fragment received. Chris says, “Hurry, but don’t break anything.”', 2200, function(){
           document.getElementById('wire-module').classList.add('hidden');
           document.getElementById('laser-module').classList.remove('hidden');
           initLaser();
@@ -234,11 +239,11 @@
       } else {
         document.getElementById('feedback').textContent='❌ Wrong. Try another wire.';
         document.getElementById('app').classList.add('shake');
-        setTimeout(()=>document.getElementById('app').classList.remove('shake'),500);
+        setTimeout(function(){ document.getElementById('app').classList.remove('shake'); }, 500);
       }
     }
 
-    // ===== Laser module (mobile-optimized) =====
+    // ===== Laser module =====
     const LASER_ROWS=5, LASER_COLS=5, LASER_CORRECT={row:4,col:2}; // bottom middle (0-based)
     function initLaser(){
       const grid=document.getElementById('laser-grid'); grid.innerHTML='';
@@ -257,8 +262,7 @@
       if(r===LASER_CORRECT.row && c===LASER_CORRECT.col){
         document.getElementById('laser-feedback').textContent='✅ Laser grid bypassed. (Digit revealed: 0)';
         setCodeDigit(1, 0);
-        // Transition then auto-advance to Transfer Bars
-        showTransition('No alarms so far. Keep it quiet — he’s almost at the meet.', 2200, ()=>{
+        showTransition('No alarms so far. Keep it quiet — he’s almost at the meet.', 2200, function(){
           document.getElementById('laser-module').classList.add('hidden');
           document.getElementById('transfer-module').classList.remove('hidden');
           initTransfer();
@@ -266,7 +270,7 @@
       } else {
         document.getElementById('laser-feedback').textContent='❌ Incorrect tile. Try again.';
         document.getElementById('app').classList.add('shake');
-        setTimeout(()=>document.getElementById('app').classList.remove('shake'),400);
+        setTimeout(function(){ document.getElementById('app').classList.remove('shake'); }, 400);
       }
     }
 
@@ -277,7 +281,8 @@
     let tInterval=null, tPercent=0, tIdx=0, tSpeed=0.35; // slightly slower
 
     function initTransfer(){
-      clearInterval(tInterval); tPercent=0; tIdx=0; document.getElementById('trace').style.display='none';
+      if(tInterval) clearInterval(tInterval);
+      tPercent=0; tIdx=0; document.getElementById('trace').style.display='none';
       document.getElementById('transfer-feedback').textContent='';
       document.getElementById('transfer-percent').textContent='0%';
       document.getElementById('transfer-bar-fill').style.width='0%';
@@ -294,11 +299,10 @@
       if(ok){
         tIdx++;
         if(tIdx>=ORDER.length){
-          clearInterval(tInterval);
+          if(tInterval) clearInterval(tInterval);
           document.getElementById('transfer-feedback').textContent='✅ Sequence complete. (Digit revealed: 2)';
           setCodeDigit(2, 2);
-          // Transition then move to Camera module
-          showTransition('Traffic cams acquired. Pull the final code from the footage.', 2600, ()=>{
+          showTransition('Traffic cams acquired. Pull the final code from the footage.', 2600, function(){
             document.getElementById('transfer-module').classList.add('hidden');
             document.getElementById('camera-module').classList.remove('hidden');
             initCamera();
@@ -310,7 +314,7 @@
         document.getElementById('trace').style.display='block';
         document.getElementById('transfer-feedback').textContent='';
         document.getElementById('app').classList.add('shake');
-        setTimeout(()=>{ document.getElementById('app').classList.remove('shake'); document.getElementById('trace').style.display='none'; }, 800);
+        setTimeout(function(){ document.getElementById('app').classList.remove('shake'); document.getElementById('trace').style.display='none'; }, 800);
         tIdx=0; tPercent=0;
       }
     }
@@ -322,13 +326,11 @@
     function initCamera(){
       document.getElementById('cam-feedback').textContent='';
       const vid = document.getElementById('cam-video');
-      vid.currentTime = 0; // keep inline; let the user tap Play to ensure audio
-      document.getElementById('cam-code').value='';
-    }); // autoplay may be blocked; controls shown
+      vid.currentTime = 0; // keep inline; user taps Play for audio
       document.getElementById('cam-code').value='';
     }
 
-    document.getElementById('cam-submit').addEventListener('click', ()=>{
+    document.getElementById('cam-submit').addEventListener('click', function(){
       const input = (document.getElementById('cam-code').value||'').trim();
       if(!/^\d{4}$/.test(input)){
         document.getElementById('cam-feedback').textContent='Enter a 4‑digit code.';
@@ -336,14 +338,14 @@
       }
       if(input === REQUIRED_CAM_CODE){
         setCodeDigit(3, FINAL_DIGIT);
-        document.getElementById('cam-feedback').textContent=`✅ Correct. Final digit unlocked: ${FINAL_DIGIT}`;
-        if(codeDigits.every(d=>d!==null)){
-          showTransition(`Vault Code Complete: ${codeDigits.join(' ')}`, 2800);
+        document.getElementById('cam-feedback').textContent='✅ Correct. Final digit unlocked: ' + FINAL_DIGIT;
+        if(codeDigits.every(function(d){ return d!==null; })){
+          showTransition('Vault Code Complete: ' + codeDigits.join(' '), 2800);
         }
       } else {
         document.getElementById('cam-feedback').textContent='❌ Incorrect — check the footage again.';
         document.getElementById('app').classList.add('shake');
-        setTimeout(()=>document.getElementById('app').classList.remove('shake'), 400);
+        setTimeout(function(){ document.getElementById('app').classList.remove('shake'); }, 400);
       }
     });
 
