@@ -68,7 +68,7 @@
 
     <!-- INTRO VIDEO (auto-plays after Start) -->
     <div id="intro-video" class="screen hidden">
-      <video id="heist-video" src="HeistProtocol_Intro.mp4" preload="auto" muted playsinline></video>
+      <video id="heist-video" src="HeistProtocol_Intro.mp4" preload="auto" playsinline controls></video>
     </div>
 
     <!-- CODE PANEL (pinned top) -->
@@ -114,7 +114,7 @@
     <!-- CAMERA MODULE -->
     <div id="camera-module" class="screen hidden">
       <h2>Module: Camera Review</h2>
-      <video id="cam-video" src="HeistProtocol_Camera.mp4" preload="auto" controls></video>
+      <video id="cam-video" src="HeistProtocol_Camera.mp4" preload="auto" playsinline controls></video>
       <p id="cam-instructions" style="margin-top:.5em;">Watch the footage, then enter the 4‑digit code you observed.</p>
       <div style="display:flex; gap:.5em; justify-content:center; margin-top:.25em;">
         <input id="cam-code" inputmode="numeric" pattern="\d{4}" maxlength="4" placeholder="----" style="width:7em; text-align:center; background:#000; color:#0f0; border:1px solid #0f0; border-radius:6px; padding:.4em .5em;"/>
@@ -166,22 +166,17 @@
     // ===== START: play intro video then begin modules =====
     document.getElementById('start-btn').addEventListener('click',()=>{
       const bg = document.getElementById('bg-music');
-      // Delay music until after intro to avoid autoplay conflicts
       try { bg.pause(); bg.currentTime = 0; } catch(e) {}
       document.getElementById('start-screen').classList.add('hidden');
       const intro = document.getElementById('intro-video');
-      const vid = document.getElementById('heist-video');
+      const vid   = document.getElementById('heist-video');
       intro.classList.remove('hidden');
       vid.currentTime = 0;
-      // Try to play; ensure muted+inline if blocked; last resort show controls
-      vid.play().catch(()=>{
-        vid.muted = true;
-        vid.playsInline = true;
-        vid.play().catch(()=>{ vid.setAttribute('controls','controls'); });
-      });
+      // Try to play WITH audio inline; if blocked, user can tap Play
+      vid.play().catch(()=>{ vid.setAttribute('controls','controls'); });
       vid.onended = () => {
         intro.classList.add('hidden');
-        // Start background music after intro
+        // Start background music after intro ends
         bg.play().catch(()=>{});
         renderCodePanel();
         document.getElementById('wire-module').classList.remove('hidden');
@@ -327,8 +322,9 @@
     function initCamera(){
       document.getElementById('cam-feedback').textContent='';
       const vid = document.getElementById('cam-video');
-      vid.currentTime = 0; // start from the top
-      vid.play().catch(()=>{}); // autoplay may be blocked; controls shown
+      vid.currentTime = 0; // keep inline; let the user tap Play to ensure audio
+      document.getElementById('cam-code').value='';
+    }); // autoplay may be blocked; controls shown
       document.getElementById('cam-code').value='';
     }
 
