@@ -24,7 +24,7 @@
     justify-content: center;
   }
 
-  /* Square container (1:1) */
+  /* 1:1 square container */
   #square {
     width: min(100vw, 100vh);
     height: min(100vw, 100vh);
@@ -38,7 +38,7 @@
   #hintText {
     width: 100%;
     height: 100%;
-    font-size: 6vw; /* base size, JS will fine-tune if needed */
+    font-size: 6vw; /* JS will fit precisely */
     line-height: 1.1;
     text-align: center;
     white-space: pre-wrap;
@@ -98,11 +98,11 @@
   const sendBtn = document.getElementById("send");
   const clearBtn = document.getElementById("clear");
 
-  const STORAGE_KEY = "hint_screen_state_minimal_square";
+  const STORAGE_KEY = "hint_screen_state_minimal_square_typing";
 
   let channel = null;
   try {
-    channel = new BroadcastChannel("hint_screen_channel_minimal_square");
+    channel = new BroadcastChannel("hint_screen_channel_minimal_square_typing");
   } catch (e) {
     channel = null;
   }
@@ -113,12 +113,54 @@
     else localStorage.setItem(STORAGE_KEY + "_ping", Date.now());
   }
 
+  // --- Typing animation control ---
+  let typingTimer = null;
+  let currentToken = 0;
+
+  function startTyping(fullText) {
+    // Cancel any previous typing
+    currentToken++;
+    const token = currentToken;
+    if (typingTimer) clearInterval(typingTimer);
+
+    hintText.textContent = "";
+    if (!fullText) return;
+
+    // Type speed (ms per character). Tweak if you want faster/slower.
+    const baseDelay = 18;
+
+    let i = 0;
+
+    typingTimer = setInterval(() => {
+      if (token !== currentToken) {
+        clearInterval(typingTimer);
+        return;
+      }
+
+      // Add next character
+      hintText.textContent += fullText[i];
+      i++;
+
+      // Keep fitting as it grows (so it never overflows)
+      fitText();
+
+      if (i >= fullText.length) {
+        clearInterval(typingTimer);
+      }
+    }, baseDelay);
+  }
+
   function applyState(state) {
     if (!state || state.type === "clear") {
+      currentToken++;
+      if (typingTimer) clearInterval(typingTimer);
       hintText.textContent = "";
-    } else if (state.type === "hint") {
-      hintText.textContent = state.text || "";
-      fitText();
+      return;
+    }
+
+    if (state.type === "hint") {
+      // Start typing animation
+      startTyping(state.text || "");
     }
   }
 
@@ -149,7 +191,7 @@
     displayDiv.style.display = "flex";
     controlDiv.style.display = "none";
 
-    // Load last state
+    // Load last state (no typing on reload if you want: we can change this)
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) applyState(JSON.parse(saved));
 
