@@ -22,16 +22,30 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 40px;
+  }
+
+  /* Square container (1:1) */
+  #square {
+    width: min(100vw, 100vh);
+    height: min(100vw, 100vh);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5%;
     box-sizing: border-box;
   }
 
   #hintText {
-    font-size: 6vw;
+    width: 100%;
+    height: 100%;
+    font-size: 6vw; /* base size, JS will fine-tune if needed */
     line-height: 1.1;
     text-align: center;
     white-space: pre-wrap;
     word-break: break-word;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   /* CONTROL MODE */
@@ -61,7 +75,9 @@
 <body>
 
 <div id="display">
-  <div id="hintText"></div>
+  <div id="square">
+    <div id="hintText"></div>
+  </div>
 </div>
 
 <div id="control">
@@ -82,11 +98,11 @@
   const sendBtn = document.getElementById("send");
   const clearBtn = document.getElementById("clear");
 
-  const STORAGE_KEY = "hint_screen_state_minimal";
+  const STORAGE_KEY = "hint_screen_state_minimal_square";
 
   let channel = null;
   try {
-    channel = new BroadcastChannel("hint_screen_channel_minimal");
+    channel = new BroadcastChannel("hint_screen_channel_minimal_square");
   } catch (e) {
     channel = null;
   }
@@ -102,8 +118,32 @@
       hintText.textContent = "";
     } else if (state.type === "hint") {
       hintText.textContent = state.text || "";
+      fitText();
     }
   }
+
+  // Auto-fit text inside the square
+  function fitText() {
+    if (!hintText.textContent) return;
+
+    const container = document.getElementById("square");
+    let size = container.clientWidth * 0.15; // start big
+    hintText.style.fontSize = size + "px";
+
+    // Shrink until it fits
+    while (
+      (hintText.scrollWidth > hintText.clientWidth ||
+       hintText.scrollHeight > hintText.clientHeight) &&
+      size > 10
+    ) {
+      size -= 2;
+      hintText.style.fontSize = size + "px";
+    }
+  }
+
+  window.addEventListener("resize", () => {
+    fitText();
+  });
 
   if (mode === "display") {
     displayDiv.style.display = "flex";
