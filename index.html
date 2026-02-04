@@ -57,7 +57,7 @@
 
   textarea {
     width: 100%;
-    height: 200px;
+    height: 180px;
     font-size: 20px;
     padding: 12px;
     box-sizing: border-box;
@@ -70,6 +70,28 @@
     padding: 10px 18px;
     cursor: pointer;
   }
+
+  /* Preset area */
+  #presets {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 10px;
+  }
+
+  .presetBtn {
+    font-size: 16px;
+    padding: 12px 14px;
+    text-align: left;
+    line-height: 1.25;
+  }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
 </style>
 </head>
 <body>
@@ -81,9 +103,14 @@
 </div>
 
 <div id="control">
-  <textarea id="input" placeholder="Type hint here..."></textarea><br>
-  <button id="send">Send</button>
-  <button id="clear">Clear</button>
+  <textarea id="input" placeholder="Type hint here..."></textarea>
+
+  <div class="row">
+    <button id="send">Send</button>
+    <button id="clear">Clear</button>
+  </div>
+
+  <div id="presets"></div>
 </div>
 
 <script>
@@ -97,12 +124,13 @@
   const input = document.getElementById("input");
   const sendBtn = document.getElementById("send");
   const clearBtn = document.getElementById("clear");
+  const presetsDiv = document.getElementById("presets");
 
-  const STORAGE_KEY = "hint_screen_state_minimal_square_typing";
+  const STORAGE_KEY = "hint_screen_state_minimal_square_typing_presets";
 
   let channel = null;
   try {
-    channel = new BroadcastChannel("hint_screen_channel_minimal_square_typing");
+    channel = new BroadcastChannel("hint_screen_channel_minimal_square_typing_presets");
   } catch (e) {
     channel = null;
   }
@@ -118,7 +146,6 @@
   let currentToken = 0;
 
   function startTyping(fullText) {
-    // Cancel any previous typing
     currentToken++;
     const token = currentToken;
     if (typingTimer) clearInterval(typingTimer);
@@ -126,27 +153,18 @@
     hintText.textContent = "";
     if (!fullText) return;
 
-    // Type speed (ms per character). Tweak if you want faster/slower.
-    const baseDelay = 18;
+    const baseDelay = 18; // typing speed (ms/char)
 
     let i = 0;
-
     typingTimer = setInterval(() => {
       if (token !== currentToken) {
         clearInterval(typingTimer);
         return;
       }
-
-      // Add next character
       hintText.textContent += fullText[i];
       i++;
-
-      // Keep fitting as it grows (so it never overflows)
       fitText();
-
-      if (i >= fullText.length) {
-        clearInterval(typingTimer);
-      }
+      if (i >= fullText.length) clearInterval(typingTimer);
     }, baseDelay);
   }
 
@@ -157,9 +175,7 @@
       hintText.textContent = "";
       return;
     }
-
     if (state.type === "hint") {
-      // Start typing animation
       startTyping(state.text || "");
     }
   }
@@ -172,7 +188,6 @@
     let size = container.clientWidth * 0.15; // start big
     hintText.style.fontSize = size + "px";
 
-    // Shrink until it fits
     while (
       (hintText.scrollWidth > hintText.clientWidth ||
        hintText.scrollHeight > hintText.clientHeight) &&
@@ -183,21 +198,49 @@
     }
   }
 
-  window.addEventListener("resize", () => {
-    fitText();
-  });
+  window.addEventListener("resize", () => fitText());
+
+  // Preset hints (your list)
+  const PRESETS = [
+    "Look at the scenes that are circled on the scene list. Find those scenes in the script. The bolded word in each of those scenes correspond to a poster around the room...",
+    "Each matching poster has an ON or OFF written on it. The two buttons on the lamp also turn it ON and OFF...",
+    "The Ouija board has been damaged on purpose. Look closely at what’s scratched.",
+    "Try those three numbers on the padlock on the nightstand.",
+    "Add up the numbers on the dice faces for each stat.",
+    "The book that has \"Part 1\" on it is \"The Boy and his Magic Book\". Is there any symbol on that desk that looks like a boy and his magic book?",
+    "One side of those coasters look like they belong somewhere specific.",
+    "If a rule says ‘don’t touch’ and it’s crossed out… maybe you should.",
+    "Maybe we were just SITTING on where he went the whole time...",
+    "The praying note isn’t just for story. Try doing what it says.",
+    "Something changes when someone kneels.",
+    "Have one player kneel at the altar, then place the eyes."
+  ];
+
+  function renderPresets() {
+    presetsDiv.innerHTML = "";
+    PRESETS.forEach((text, idx) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "presetBtn";
+      btn.textContent = text;
+      btn.onclick = () => {
+        input.value = text;           // load into textbox
+        input.focus();
+        // move cursor to end
+        input.setSelectionRange(input.value.length, input.value.length);
+      };
+      presetsDiv.appendChild(btn);
+    });
+  }
 
   if (mode === "display") {
     displayDiv.style.display = "flex";
     controlDiv.style.display = "none";
 
-    // Load last state (no typing on reload if you want: we can change this)
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) applyState(JSON.parse(saved));
 
-    if (channel) {
-      channel.onmessage = (e) => applyState(e.data);
-    }
+    if (channel) channel.onmessage = (e) => applyState(e.data);
 
     window.addEventListener("storage", () => {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -205,23 +248,17 @@
     });
 
   } else {
-    // Control mode (default)
     controlDiv.style.display = "block";
     displayDiv.style.display = "none";
 
-    sendBtn.onclick = () => {
-      sendState({ type: "hint", text: input.value });
-    };
+    renderPresets();
 
-    clearBtn.onclick = () => {
-      sendState({ type: "clear" });
-    };
+    sendBtn.onclick = () => sendState({ type: "hint", text: input.value });
+    clearBtn.onclick = () => sendState({ type: "clear" });
 
     // Ctrl+Enter to send
     input.addEventListener("keydown", (e) => {
-      if (e.ctrlKey && e.key === "Enter") {
-        sendBtn.click();
-      }
+      if (e.ctrlKey && e.key === "Enter") sendBtn.click();
     });
   }
 </script>
