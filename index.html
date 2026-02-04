@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hint Screen</title>
+  <style>
+    :root{
+      --bg:#0b0d10;
+      --panel:#12161c;
+      --text:#f4f6f8;
+      --muted:#a9b3bf;
+      --accent:#2dd4bf;
+      --danger:#fb7185;
+      --border:#263040;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text);
+      background: radial-gradient(1200px 700px at 50% -10%, #182033 0%, var(--bg) 55%);
+      min-height:100vh;
+    }
+    .wrap{
+      max-width:1100px;
+      margin:0 auto;
+      padding:24px;
+    }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:18px;
+      box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+    }
+    .row{display:flex; gap:14px; flex-wrap:wrap; align-items:center}
+    .row > *{flex:1}
+    .small{font-size:13px;color:var(--muted); line-height:1.4}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,0.02);
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:13px;
+      color:var(--muted);
+      flex:0 0 auto;
+    }
+    .dot{
+      width:10px;height:10px;border-radius:50%;
+      background:#64748b;
+      box-shadow: 0 0 0 3px rgba(100,116,139,0.15);
+    }
+    .dot.live{background:var(--accent); box-shadow: 0 0 0 3px rgba(45,212,191,0.16)}
+    .dot.warn{background:#fbbf24; box-shadow: 0 0 0 3px rgba(251,191,36,0.16)}
+    .btn{
+      appearance:none;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,0.02);
+      color:var(--text);
+      padding:12px 14px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:600;
+      transition: transform .05s ease, border-color .15s ease, background .15s ease;
+    }
+    .btn:hover{border-color:#3a4a63; background:rgba(255,255,255,0.03)}
+    .btn:active{transform:translateY(1px)}
+    .btn.primary{
+      border-color: rgba(45,212,191,0.45);
+      background: rgba(45,212,191,0.12);
+    }
+    .btn.danger{
+      border-color: rgba(251,113,133,0.45);
+      background: rgba(251,113,133,0.10);
+    }
+    textarea, input{
+      width:100%;
+      padding:14px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:rgba(0,0,0,0.22);
+      color:var(--text);
+      font-size:16px;
+      outline:none;
+    }
+    textarea:focus, input:focus{border-color:#3a4a63}
+    textarea{min-height:150px; resize:vertical; line-height:1.4}
+
+    /* DISPLAY MODE */
+    .display {
+      height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:36px;
+    }
+    .hintBox{
+      width:min(1600px, 100%);
+      border-radius:26px;
+      border:1px solid var(--border);
+      background:rgba(0,0,0,0.35);
+      box-shadow: 0 22px 90px rgba(0,0,0,0.55);
+      padding:48px 56px;
+      position:relative;
+      overflow:hidden;
+    }
+    .hintBox::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background: radial-gradient(900px 380px at 50% 0%, rgba(45,212,191,0.18), transparent 60%);
+      pointer-events:none;
+    }
+    .hintTitle{
+      position:relative;
+      font-size: clamp(22px, 2.4vw, 34px);
+      letter-spacing:0.08em;
+      text-transform:uppercase;
+      color:rgba(244,246,248,0.8);
+      margin:0 0 18px 0;
+    }
+    .hintText{
+      position:relative;
+      font-size: clamp(44px, 4.2vw, 88px);
+      line-height:1.12;
+      margin:0;
+      white-space:pre-wrap;
+      word-wrap:break-word;
+    }
+    .hintMeta{
+      position:relative;
+      margin-top:28px;
+      display:flex;
+      justify-content:space-between;
+      gap:16px;
+      flex-wrap:wrap;
+      color:rgba(169,179,191,0.9);
+      font-size: clamp(14px, 1.2vw, 18px);
+    }
+    .hidden{display:none !important}
+    .fadeIn{
+      animation:fadeIn .18s ease-out;
+    }
+    @keyframes fadeIn{
+      from{opacity:0; transform:translateY(6px)}
+      to{opacity:1; transform:translateY(0)}
+    }
+
+    /* CONTROL MODE layout */
+    .grid{
+      display:grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap:16px;
+    }
+    @media (max-width:900px){
+      .grid{grid-template-columns:1fr}
+    }
+    .label{
+      display:block;
+      margin: 0 0 8px 2px;
+      color:var(--muted);
+      font-size:13px;
+      letter-spacing:0.02em;
+      text-transform:uppercase;
+    }
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size:12px;
+      padding:2px 8px;
+      border-radius:8px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,0.03);
+      color:rgba(244,246,248,0.88);
+    }
+    .preview{
+      padding:18px;
+      border-radius:16px;
+      border:1px solid var(--border);
+      background:rgba(0,0,0,0.18);
+      min-height:220px;
+      white-space:pre-wrap;
+      font-size:22px;
+      line-height:1.2;
+    }
+  </style>
+</head>
+<body>
+  <div id="controlView" class="wrap hidden">
+    <div class="row" style="margin-bottom:14px">
+      <div class="pill"><span id="statusDot" class="dot"></span> <span id="statusText">Connecting…</span></div>
+      <div class="pill">Room key: <span id="roomKeyPill" class="kbd"></span></div>
+      <div class="pill">Open display tab with: <span class="kbd" id="displayUrl"></span></div>
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label class="label" for="hintInput">Hint text (shows exactly as typed)</label>
+          <textarea id="hintInput" placeholder="Type your hint here..."></textarea>
+
+          <div class="row" style="margin-top:12px">
+            <button id="sendBtn" class="btn primary" type="button">Send</button>
+            <button id="clearBtn" class="btn danger" type="button">Clear display</button>
+            <button id="resendBtn" class="btn" type="button">Re-send last</button>
+          </div>
+
+          <p class="small" style="margin-top:12px">
+            Tips:
+            <br>• Press <span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> to Send.
+            <br>• The display will only change when you hit <b>Send</b> (or Clear).
+          </p>
+        </div>
+
+        <div>
+          <label class="label">Live preview (for you only)</label>
+          <div id="preview" class="preview"></div>
+          <p class="small" style="margin-top:10px">
+            This preview does <b>not</b> update the team screen until you click Send.
+          </p>
+
+          <label class="label" for="roomKeyInput" style="margin-top:16px">Room key (optional)</label>
+          <input id="roomKeyInput" placeholder="e.g., other-side-1" />
+          <p class="small" style="margin-top:10px">
+            Use a different room key if you ever run multiple displays at once.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="displayView" class="display hidden">
+    <div class="hintBox" id="hintBox">
+      <h1 class="hintTitle">Hint</h1>
+      <p id="hintText" class="hintText">Waiting for a hint…</p>
+      <div class="hintMeta">
+        <div>Jess &amp; Cohen</div>
+        <div id="timeStamp">—</div>
+        <div>Room key: <span id="roomKeyDisplay" class="kbd"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Simple 2-tab sync: BroadcastChannel with localStorage fallback ---
+
+    const params = new URLSearchParams(location.search);
+    const mode = (params.get("mode") || "").toLowerCase();
+    const defaultRoomKey = params.get("room") || "the-other-side";
+    const STORAGE_KEY = (rk) => `hint_screen_state__${rk}`;
+
+    const controlView = document.getElementById("controlView");
+    const displayView = document.getElementById("displayView");
+
+    const statusDot = document.getElementById("statusDot");
+    const statusText = document.getElementById("statusText");
+    const roomKeyPill = document.getElementById("roomKeyPill");
+    const displayUrl = document.getElementById("displayUrl");
+
+    const hintInput = document.getElementById("hintInput");
+    const preview = document.getElementById("preview");
+    const sendBtn = document.getElementById("sendBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const resendBtn = document.getElementById("resendBtn");
+    const roomKeyInput = document.getElementById("roomKeyInput");
+
+    const hintText = document.getElementById("hintText");
+    const timeStamp = document.getElementById("timeStamp");
+    const roomKeyDisplay = document.getElementById("roomKeyDisplay");
+    const hintBox = document.getElementById("hintBox");
+
+    let roomKey = defaultRoomKey;
+    let lastSent = "";
+
+    function nowStamp(){
+      // Local time string, readable on display
+      const d = new Date();
+      return d.toLocaleString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit", weekday:"short", day:"2-digit", month:"short" });
+    }
+
+    function setStatus(state){
+      // state: "live" | "warn" | "idle"
+      statusDot.classList.remove("live","warn");
+      if(state === "live") statusDot.classList.add("live");
+      if(state === "warn") statusDot.classList.add("warn");
+    }
+
+    function safeSetState(state){
+      localStorage.setItem(STORAGE_KEY(roomKey), JSON.stringify(state));
+    }
+
+    function safeGetState(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY(roomKey));
+        return raw ? JSON.parse(raw) : null;
+      }catch(e){
+        return null;
+      }
+    }
+
+    // Broadcast channel (works on most modern Chromium-based browsers)
+    let bc = null;
+    function initBroadcast(){
+      try{
+        bc = new BroadcastChannel(`hint_screen_channel__${roomKey}`);
+        return true;
+      }catch(e){
+        bc = null;
+        return false;
+      }
+    }
+
+    function postMessage(msg){
+      // Always write state to storage so refresh doesn't lose it
+      safeSetState(msg);
+      if(bc){
+        bc.postMessage(msg);
+      }else{
+        // Trigger other tabs via storage event by writing a ping key too
+        localStorage.setItem(STORAGE_KEY(roomKey) + "__ping", String(Date.now()));
+      }
+    }
+
+    function applyToDisplay(msg){
+      // msg: { type: "hint"|"clear", text, ts }
+      hintBox.classList.remove("fadeIn");
+      void hintBox.offsetWidth; // reset animation
+      hintBox.classList.add("fadeIn");
+
+      if(msg.type === "clear"){
+        hintText.textContent = "Waiting for a hint…";
+        timeStamp.textContent = "—";
+        return;
+      }
+      hintText.textContent = msg.text || "";
+      timeStamp.textContent = msg.ts || nowStamp();
+    }
+
+    function refreshUrls(){
+      const base = location.origin + location.pathname;
+      displayUrl.textContent = `${base}?mode=display&room=${encodeURIComponent(roomKey)}`;
+      roomKeyPill.textContent = roomKey;
+    }
+
+    function switchRoomKey(newKey){
+      roomKey = (newKey || "").trim() || "the-other-side";
+      refreshUrls();
+
+      // Re-init channel for this room key
+      if(bc) bc.close();
+      const ok = initBroadcast();
+      if(ok){
+        setStatus("live");
+        statusText.textContent = "Connected (BroadcastChannel)";
+      }else{
+        setStatus("warn");
+        statusText.textContent = "Connected (storage fallback)";
+      }
+
+      // Load existing state (if any)
+      const existing = safeGetState();
+      if(existing && mode === "display"){
+        applyToDisplay(existing);
+      }
+    }
+
+    // Decide view
+    if(mode === "display"){
+      displayView.classList.remove("hidden");
+      roomKeyDisplay.textContent = roomKey;
+
+      switchRoomKey(roomKey);
+
+      if(bc){
+        bc.onmessage = (ev) => applyToDisplay(ev.data);
+      }
+
+      // Fallback: listen for storage changes
+      window.addEventListener("storage", (ev) => {
+        if(!ev.key) return;
+        if(ev.key === STORAGE_KEY(roomKey) || ev.key === STORAGE_KEY(roomKey) + "__ping"){
+          const s = safeGetState();
+          if(s) applyToDisplay(s);
+        }
+      });
+
+      // If refreshed, restore last known state
+      const s = safeGetState();
+      if(s) applyToDisplay(s);
+
+    } else {
+      // CONTROL is default if not display
+      controlView.classList.remove("hidden");
+      roomKeyInput.value = roomKey;
+
+      switchRoomKey(roomKey);
+
+      // Keep preview updated
+      function updatePreview(){
+        preview.textContent = hintInput.value || "…";
+      }
+      hintInput.addEventListener("input", updatePreview);
+      updatePreview();
+
+      // Send / Clear
+      function sendHint(text){
+        const payload = { type:"hint", text: text ?? "", ts: nowStamp() };
+        lastSent = payload.text;
+        postMessage(payload);
+      }
+      function clearHint(){
+        postMessage({ type:"clear", text:"", ts: nowStamp() });
+      }
+
+      sendBtn.addEventListener("click", () => sendHint(hintInput.value));
+      clearBtn.addEventListener("click", clearHint);
+      resendBtn.addEventListener("click", () => sendHint(lastSent));
+
+      // Ctrl+Enter to send
+      hintInput.addEventListener("keydown", (e) => {
+        if(e.ctrlKey && e.key === "Enter"){
+          e.preventDefault();
+          sendHint(hintInput.value);
+        }
+      });
+
+      // Room key changes
+      roomKeyInput.addEventListener("change", () => {
+        switchRoomKey(roomKeyInput.value);
+      });
+
+      // If BC exists, mark connected
+      if(bc){
+        setStatus("live");
+        statusText.textContent = "Connected (BroadcastChannel)";
+      }else{
+        setStatus("warn");
+        statusText.textContent = "Connected (storage fallback)";
+      }
+    }
+  </script>
+</body>
+</html>
